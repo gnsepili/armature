@@ -1,0 +1,541 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "number",
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$"
+    },
+    "description": {
+      "default": "",
+      "type": "string"
+    },
+    "intent": {
+      "default": {
+        "problem": "",
+        "target_user": "",
+        "examples": [],
+        "success_criteria": [],
+        "prohibited_actions": [],
+        "write_scope": "",
+        "ground_truth_sources": []
+      },
+      "type": "object",
+      "properties": {
+        "problem": {
+          "default": "",
+          "type": "string"
+        },
+        "target_user": {
+          "default": "",
+          "type": "string"
+        },
+        "examples": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "request": {
+                "type": "string",
+                "minLength": 1
+              },
+              "desired_outcome": {
+                "default": "",
+                "type": "string"
+              }
+            },
+            "required": [
+              "request"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "success_criteria": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prohibited_actions": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "write_scope": {
+          "default": "",
+          "type": "string"
+        },
+        "ground_truth_sources": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "default": "python",
+          "type": "string",
+          "enum": [
+            "python",
+            "typescript"
+          ]
+        },
+        "framework": {
+          "type": "string",
+          "enum": [
+            "langgraph",
+            "openai-agents",
+            "pydantic-ai",
+            "agno",
+            "adk",
+            "claude-agent-sdk",
+            "crewai",
+            "vercel-ai-sdk",
+            "mastra"
+          ]
+        },
+        "pattern": {
+          "default": "single_agent_tools",
+          "type": "string",
+          "enum": [
+            "single_agent_tools",
+            "workflow",
+            "supervisor",
+            "rag_chat"
+          ]
+        },
+        "python_version": {
+          "default": "3.12",
+          "type": "string",
+          "pattern": "^3\\.\\d+$"
+        }
+      },
+      "required": [
+        "framework"
+      ],
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "anthropic",
+            "openai_compatible"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "api_key_env": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "params": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "temperature": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "max_output_tokens": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "additionalProperties": false
+        },
+        "required_capabilities": {
+          "default": [
+            "tool_calling",
+            "streaming"
+          ],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "tool_calling",
+              "streaming",
+              "structured_output"
+            ]
+          }
+        }
+      },
+      "required": [
+        "provider",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "session_memory": {
+          "default": {
+            "enabled": true,
+            "backend": "memory"
+          },
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "type": "boolean"
+            },
+            "backend": {
+              "default": "memory",
+              "type": "string",
+              "enum": [
+                "memory",
+                "sqlite"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "custom_tools": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "description": {
+                "default": "TODO: describe what this tool does and when to use it.",
+                "type": "string",
+                "minLength": 1
+              },
+              "side_effect": {
+                "default": "read",
+                "type": "string",
+                "enum": [
+                  "none",
+                  "read",
+                  "write",
+                  "destructive"
+                ]
+              },
+              "mode": {
+                "default": "stub",
+                "type": "string",
+                "enum": [
+                  "stub",
+                  "implemented"
+                ]
+              },
+              "args": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                    },
+                    "type": {
+                      "default": "string",
+                      "type": "string",
+                      "enum": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean"
+                      ]
+                    },
+                    "description": {
+                      "default": "",
+                      "type": "string"
+                    },
+                    "required": {
+                      "default": true,
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "idempotent": {
+                "type": "boolean"
+              },
+              "timeout_s": {
+                "default": 30,
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 600
+              },
+              "auth_env": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "structured_output": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": false,
+              "type": "boolean"
+            },
+            "schema": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "additionalProperties": false
+        },
+        "rag": {
+          "default": {
+            "enabled": false
+          },
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": {}
+        },
+        "mcp": {
+          "default": {
+            "servers": []
+          },
+          "type": "object",
+          "properties": {
+            "servers": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "policies": {
+      "default": {
+        "approvals": {
+          "write": "require",
+          "destructive": "require"
+        },
+        "limits": {
+          "max_steps": 15,
+          "max_tool_calls": 30,
+          "max_tokens": 200000,
+          "max_cost_usd": 1,
+          "timeout_s": 120
+        }
+      },
+      "type": "object",
+      "properties": {
+        "approvals": {
+          "default": {
+            "write": "require",
+            "destructive": "require"
+          },
+          "type": "object",
+          "properties": {
+            "write": {
+              "default": "require",
+              "type": "string",
+              "enum": [
+                "require",
+                "allow"
+              ]
+            },
+            "destructive": {
+              "default": "require",
+              "type": "string",
+              "enum": [
+                "require",
+                "allow"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "limits": {
+          "default": {
+            "max_steps": 15,
+            "max_tool_calls": 30,
+            "max_tokens": 200000,
+            "max_cost_usd": 1,
+            "timeout_s": 120
+          },
+          "type": "object",
+          "properties": {
+            "max_steps": {
+              "default": 15,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_tool_calls": {
+              "default": 30,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_tokens": {
+              "default": 200000,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_cost_usd": {
+              "default": 1,
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "timeout_s": {
+              "default": 120,
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "interfaces": {
+      "default": [
+        "terminal",
+        "web_playground",
+        "rest_openapi",
+        "sse"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "terminal",
+          "web_playground",
+          "rest_openapi",
+          "sse",
+          "websocket"
+        ]
+      }
+    },
+    "assistant": {
+      "default": {
+        "targets": [
+          "claude",
+          "codex"
+        ],
+        "docs_mcp": true
+      },
+      "type": "object",
+      "properties": {
+        "targets": {
+          "default": [
+            "claude",
+            "codex"
+          ],
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "claude",
+              "codex",
+              "generic"
+            ]
+          }
+        },
+        "docs_mcp": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "telemetry": {
+      "default": {
+        "capture_content": false
+      },
+      "type": "object",
+      "properties": {
+        "capture_content": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluation": {
+      "default": {
+        "spec": "evals/evalspec.yaml"
+      },
+      "type": "object",
+      "properties": {
+        "spec": {
+          "default": "evals/evalspec.yaml",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "generation": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "template_version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "runtime",
+    "model"
+  ],
+  "additionalProperties": false
+}

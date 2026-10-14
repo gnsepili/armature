@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "type": "number",
+      "const": 1
+    },
+    "objectives": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "default": "task_success",
+          "type": "string",
+          "const": "task_success"
+        },
+        "diagnostics": {
+          "default": [
+            "tool_correctness",
+            "orchestration",
+            "safety",
+            "efficiency"
+          ],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "tool_correctness",
+              "orchestration",
+              "context_rag",
+              "memory",
+              "safety",
+              "efficiency"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "suites": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "mode": {
+            "default": "any",
+            "type": "string",
+            "enum": [
+              "offline",
+              "live",
+              "any"
+            ]
+          },
+          "trials": {
+            "default": 1,
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 50
+          },
+          "report": {
+            "default": "full",
+            "type": "string",
+            "enum": [
+              "full",
+              "aggregate_only"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "graders": {
+      "default": {
+        "defaults": [
+          "output",
+          "constraint"
+        ],
+        "judge": {
+          "enabled": false,
+          "requires_consent": true
+        }
+      },
+      "type": "object",
+      "properties": {
+        "defaults": {
+          "default": [
+            "output",
+            "constraint"
+          ],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "output",
+              "outcome",
+              "constraint",
+              "state",
+              "judge",
+              "custom"
+            ]
+          }
+        },
+        "judge": {
+          "default": {
+            "enabled": false,
+            "requires_consent": true
+          },
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": false,
+              "type": "boolean"
+            },
+            "model": {
+              "type": "string"
+            },
+            "requires_consent": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "object",
+      "properties": {
+        "critical_failures_allowed": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_task_success_regression": {
+          "default": 0.05,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fail_on_missing_required_measurements": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "targets": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "dev_pass_k": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_dev_heldout_gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_cost_per_task_usd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "min_dev_cases": {
+      "default": 20,
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "run_policy": {
+      "type": "object",
+      "properties": {
+        "tool_mode": {
+          "default": "sandbox",
+          "type": "string",
+          "const": "sandbox"
+        },
+        "max_cost_usd_per_run": {
+          "default": 5,
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "concurrency": {
+          "default": 2,
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 32
+        },
+        "case_timeout_s": {
+          "default": 180,
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "outbound_trace_export": {
+          "default": "disabled",
+          "type": "string",
+          "const": "disabled"
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "default": {
+        "sources": []
+      },
+      "type": "object",
+      "properties": {
+        "sources": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "objectives",
+    "suites",
+    "gates",
+    "run_policy"
+  ],
+  "additionalProperties": false
+}
