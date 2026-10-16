@@ -1,0 +1,6 @@
+interface:
+  display_name: "Repository Context"
+  short_description: "Generate and maintain adaptive repository context"
+  default_prompt: "Use $repo-context to set up this repository's .ai context, reading and executing every applicable original prompt in full, starting at Step 0."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "origin": "Complete original .ai/prompts system",
+  "preservation": "verbatim",
+  "files": {
+    "cross-service-prompt.md": {
+      "sha256": "eb5c7a3365ff2f75da2bcc2b9b5de85f004d62db1bf38144aac6e6759ae3aab4",
+      "bytes": 1700
+    },
+    "master-context-generator.md": {
+      "sha256": "fea706104fb96edef215d9a790cfa0dd0aab875549d09e1f904daadbe7372f69",
+      "bytes": 4204
+    },
+    "sequence-guide.md": {
+      "sha256": "b46d5c77796c1d4c4e52845ebdb714e9831b85092fd1f7346f2868b23a6a3ed5",
+      "bytes": 13136
+    },
+    "step-0-extract-global-context.md": {
+      "sha256": "e6cea60acc9df878b6faeb1a0f105e42d734decb6d73480ea4bc9778590efda4",
+      "bytes": 21541
+    },
+    "step-1-discover-modules.md": {
+      "sha256": "105f6bf6462152af4877ae9449b9d8ac46ac327ce63172ad740235092c4dff8e",
+      "bytes": 7642
+    },
+    "step-1.5-discover-features-backend.md": {
+      "sha256": "8bf4589e61f29d5f3dbf1149e0ea3c1e8eb18c3db023f8e2f0f4845cf64ffc5f",
+      "bytes": 9679
+    },
+    "step-1.5-discover-features-frontend.md": {
+      "sha256": "ea33caa92babb793a72db9b604e4db8954a6de9e407db379187b2c39b9e598b1",
+      "bytes": 13609
+    },
+    "step-2-map-relationships.md": {
+      "sha256": "adf43f9d450861cc97c37d9c05f6263577069ee7343e39b1ab0bb8e1dc254bf0",
+      "bytes": 25739
+    },
+    "step-3-generate-module-contexts.md": {
+      "sha256": "82a14edbf04cda3f51dc01611b4b4adffde26e6d7f683c1dea6529f54810cf38",
+      "bytes": 32273
+    },
+    "step-4-cross-referencing.md": {
+      "sha256": "bf6528d60e5f2eeb5e99dd7748a6619a08642beea031502162a062a3a9e75896",
+      "bytes": 25065
+    },
+    "task-prompt-guide.md": {
+      "sha256": "240b5a0c74222e9ff98b078b1ba4ede4876444066948bf07d90e5f7049c7d316",
+      "bytes": 17333
+    },
+    "task-prompt.md": {
+      "sha256": "f4815d4274498e4c120b528a2f22dbfe3674116336efe9d3befdde7738ed1926",
+      "bytes": 3258
+    },
+    "update-context.md": {
+      "sha256": "9c497c73f4583fd8e4529d325eb4470647cd3374057cb6a4e5de7ab48a8afab8",
+      "bytes": 3652
+    }
+  }
+}
