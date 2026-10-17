@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "thread_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error",
+        "interrupted"
+      ]
+    },
+    "output": {},
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "system",
+              "user",
+              "assistant",
+              "tool"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "tool_calls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "args": {}
+              },
+              "required": [
+                "id",
+                "name",
+                "args"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "tool_call_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    "tool_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "args": {},
+          "side_effect": {
+            "type": "string",
+            "enum": [
+              "none",
+              "read",
+              "write",
+              "destructive"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_approval",
+              "completed",
+              "error",
+              "denied"
+            ]
+          },
+          "approval": {
+            "type": "string",
+            "enum": [
+              "not_required",
+              "pending",
+              "approved",
+              "denied"
+            ]
+          },
+          "result": {},
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stubbed": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "args",
+          "side_effect",
+          "status",
+          "approval",
+          "stubbed"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "model_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "model_calls",
+        "cost_usd"
+      ],
+      "additionalProperties": {}
+    },
+    "pending_approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tool_call_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "args": {},
+          "side_effect": {
+            "type": "string",
+            "enum": [
+              "none",
+              "read",
+              "write",
+              "destructive"
+            ]
+          }
+        },
+        "required": [
+          "tool_call_id",
+          "name",
+          "args",
+          "side_effect"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "limit_exceeded",
+                "timeout",
+                "model_error",
+                "tool_error",
+                "structured_output_invalid",
+                "invalid_request",
+                "internal"
+              ]
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "additionalProperties": {}
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "spans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "span_id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "invoke_agent",
+              "chat",
+              "execute_tool"
+            ]
+          },
+          "start_ms": {
+            "type": "number"
+          },
+          "end_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "status": {
+            "default": "unset",
+            "type": "string",
+            "enum": [
+              "ok",
+              "error",
+              "unset"
+            ]
+          },
+          "attributes": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "span_id",
+          "parent_id",
+          "name",
+          "operation",
+          "start_ms",
+          "end_ms",
+          "status",
+          "attributes"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tool_call_id": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "denied"
+            ]
+          },
+          "edited": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tool_call_id",
+          "decision",
+          "edited"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    "duration_ms": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "run_id",
+    "thread_id",
+    "status",
+    "output",
+    "messages",
+    "tool_calls",
+    "usage",
+    "pending_approvals",
+    "error",
+    "spans",
+    "approvals",
+    "duration_ms"
+  ],
+  "additionalProperties": {}
+}

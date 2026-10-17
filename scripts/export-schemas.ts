@@ -5,6 +5,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { arcSchemas } from "../packages/arc/src/types.ts";
 import { jsonSchemas } from "../packages/schema/src/index.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -13,7 +14,7 @@ const check = process.argv.includes("--check");
 mkdirSync(outDir, { recursive: true });
 
 let stale = 0;
-for (const [file, schema] of Object.entries(jsonSchemas())) {
+for (const [file, schema] of Object.entries({ ...jsonSchemas(), ...arcSchemas() })) {
   const path = join(outDir, file);
   const text = `${JSON.stringify(schema, null, 2)}\n`;
   if (check) {

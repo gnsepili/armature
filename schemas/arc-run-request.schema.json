@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "thread_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "assistant"
+                ]
+              },
+              "content": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "role",
+              "content"
+            ],
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "eval": {
+          "type": "object",
+          "properties": {
+            "case_id": {
+              "type": "string"
+            },
+            "trial": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "fixtures": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "stubs": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "result": {},
+                  "error": {
+                    "type": "string"
+                  },
+                  "delay_ms": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "input"
+  ],
+  "additionalProperties": false
+}

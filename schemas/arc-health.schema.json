@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "const": "ok"
+    },
+    "arc_version": {
+      "type": "number",
+      "const": 1
+    },
+    "framework": {
+      "type": "string"
+    },
+    "eval_mode": {
+      "type": "boolean"
+    },
+    "model_mode": {
+      "type": "string",
+      "enum": [
+        "live",
+        "mock"
+      ]
+    },
+    "ready": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    }
+  },
+  "required": [
+    "status",
+    "arc_version",
+    "framework",
+    "eval_mode",
+    "model_mode",
+    "ready"
+  ],
+  "additionalProperties": {}
+}
