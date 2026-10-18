@@ -1,0 +1,132 @@
+{
+  "catalog_version": 1,
+  "verified_at": "2026-11-13",
+  "note": "Prices are USD per 1M tokens from the providers' published pricing on verified_at. Models not listed here are allowed but run as experimental with cost NOT_MEASURED.",
+  "models": [
+    {
+      "provider": "anthropic",
+      "id": "claude-fable-5-2",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 8, "output": 40 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-fable-5-1",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 10, "output": 50 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-fable-5",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 10, "output": 50 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-opus-5-5",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 4, "output": 20 },
+      "suggested": true
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-opus-5",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 5, "output": 25 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-opus-4-8",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 5, "output": 25 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-opus-4-7",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 5, "output": 25 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-opus-4-6",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 5, "output": 25 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-sonnet-5-5",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 2, "output": 10 },
+      "suggested": true
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-sonnet-5",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 2, "output": 10 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-sonnet-4-6",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 3, "output": 15 }
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-haiku-5-5",
+      "context_window": 1000000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 0.1, "output": 0.5 },
+      "price_note": "prompts over 100K tokens bill at $0.50/$2.50",
+      "suggested": true
+    },
+    {
+      "provider": "anthropic",
+      "id": "claude-haiku-4-5",
+      "context_window": 200000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 1, "output": 5 }
+    },
+    {
+      "provider": "openai",
+      "id": "gpt-6-astra",
+      "context_window": 1050000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 10, "output": 50 }
+    },
+    {
+      "provider": "openai",
+      "id": "gpt-6.1-sol",
+      "context_window": 1050000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 2, "output": 10 },
+      "suggested": true
+    },
+    {
+      "provider": "openai",
+      "id": "gpt-6.1-terra",
+      "context_window": 1050000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 1, "output": 5 }
+    },
+    {
+      "provider": "openai",
+      "id": "gpt-6-luna",
+      "context_window": 1050000,
+      "capabilities": ["tool_calling", "streaming", "structured_output"],
+      "price": { "input": 0.1, "output": 0.5 },
+      "suggested": true
+    }
+  ]
+}
