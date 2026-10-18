@@ -1,0 +1,27 @@
+"""The agent's tools, generated from armature.yaml.
+
+Managed by Armature: descriptions, side effects, approval and timeouts come from
+the spec. Implement each tool in tools/<name>.py, which you own.
+"""
+
+from __future__ import annotations
+
+from ..tools import {{#each tools}}{{name}}{{#unless @last}}, {{/unless}}{{/each}}
+from . import tool_args
+from .tools import ToolSpec
+
+TOOLS: dict[str, ToolSpec] = {
+{{#each tools}}
+    {{py name}}: ToolSpec(
+        name={{py name}},
+        description={{py description}},
+        side_effect={{py side_effect}},
+        requires_approval={{py requires_approval}},
+        idempotent={{py idempotent}},
+        timeout_s={{timeout_s}},
+        args_model=tool_args.{{class_name}}Args,
+        handler={{name}}.run,
+        input_schema={{py input_schema}},
+    ),
+{{/each}}
+}

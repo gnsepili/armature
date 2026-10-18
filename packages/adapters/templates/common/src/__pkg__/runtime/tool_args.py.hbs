@@ -1,0 +1,24 @@
+"""Argument models for each tool, generated from the `args` in armature.yaml.
+
+Managed by Armature: change a tool's args in armature.yaml and run
+`armature generate`; the tool's handler receives an instance of its model.
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, Field
+{{#each tools}}
+
+
+class {{class_name}}Args(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+{{#each args}}
+{{#if required}}
+    {{name}}: {{py_type}} = Field(description={{py description}})
+{{else}}
+    {{name}}: {{py_type}} | None = Field(default=None, description={{py description}})
+{{/if}}
+{{else}}
+    pass
+{{/each}}
+{{/each}}

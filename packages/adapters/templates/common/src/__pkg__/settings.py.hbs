@@ -1,0 +1,91 @@
+"""Settings derived from armature.yaml plus environment overrides.
+
+Managed by Armature: change armature.yaml and run `armature generate` instead of
+editing the constants here. Environment variables are read at startup.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+NAME = {{py name}}
+DESCRIPTION = {{py description}}
+FRAMEWORK = {{py framework}}
+PATTERN = {{py pattern}}
+
+MODEL_PROVIDER = {{py model.provider}}
+MODEL_ID = {{py model.id}}
+MODEL_BASE_URL: str | None = {{py model.base_url}}
+MODEL_API_KEY_ENV = {{py model.api_key_env}}
+MODEL_TEMPERATURE: float | None = {{py model.temperature}}
+MODEL_MAX_OUTPUT_TOKENS: int | None = {{py model.max_output_tokens}}
+# USD per 1M tokens, from Armature's verified model catalog. None means NOT_MEASURED.
+PRICE_INPUT: float | None = {{py model.price_input}}
+PRICE_OUTPUT: float | None = {{py model.price_output}}
+
+LIMITS = {{py limits}}
+APPROVALS = {{py approvals}}
+SESSION_MEMORY = {{py session_memory}}
+STRUCTURED_OUTPUT_SCHEMA: dict | None = {{py structured_output.schema}}
+CAPTURE_CONTENT = {{py telemetry.capture_content}}
+
+MOCK_MODEL_ID = "mock-model"
+
+
+def _load_dotenv(path: Path) -> None:
+    """Minimal .env loader: KEY=VALUE lines; existing environment variables win."""
+    if not path.is_file():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip().removeprefix("export ").strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if key and value:
+            os.environ.setdefault(key, value)
+
+
+def _flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+@dataclass(frozen=True)
+class Settings:
+    model_mode: str = "live"
+    mock_url: str = "http://127.0.0.1:4010/v1"
+    eval_mode: bool = False
+    host: str = "127.0.0.1"
+    port: int = 8000
+    session_db: str = ".armature/sessions.db"
+    api_key: str | None = None
+    limits: dict = field(default_factory=lambda: dict(LIMITS))
+
+    @property
+    def model_id(self) -> str:
+        return MOCK_MODEL_ID if self.model_mode == "mock" else MODEL_ID
+
+    def ready(self) -> dict[str, bool]:
+        return {"credentials": self.model_mode == "mock" or bool(self.api_key)}
+
+
+def load_settings(env_file: str | Path | None = ".env") -> Settings:
+    if env_file:
+        _load_dotenv(Path(env_file))
+    mode = os.environ.get("ARMATURE_MODEL_MODE", "live").strip().lower()
+    if mode not in {"live", "mock"}:
+        raise ValueError(f"ARMATURE_MODEL_MODE must be live or mock, got {mode!r}")
+    return Settings(
+        model_mode=mode,
+        mock_url=os.environ.get("ARMATURE_MOCK_URL", "http://127.0.0.1:4010/v1").rstrip("/"),
+        eval_mode=_flag("ARMATURE_EVAL_MODE"),
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", "8000")),
+        session_db=os.environ.get("ARMATURE_SESSION_DB", ".armature/sessions.db"),
+        api_key=os.environ.get(MODEL_API_KEY_ENV) or None,
+    )

@@ -1,0 +1,39 @@
+"""Command line entry point: `python -m {{package}} serve` or `python -m {{package}} chat`."""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="{{name}}")
+    sub = parser.add_subparsers(dest="command")
+    serve = sub.add_parser("serve", help="run the ARC HTTP server")
+    serve.add_argument("--host", default=None)
+    serve.add_argument("--port", type=int, default=None)
+    sub.add_parser("chat", help="chat with the agent in this terminal")
+    args = parser.parse_args(argv)
+
+    if args.command == "chat":
+        from .runtime.chat import chat
+
+        asyncio.run(chat())
+        return
+
+    import uvicorn
+
+    from .runtime.server import create_app
+    from .settings import load_settings
+
+    settings = load_settings()
+    uvicorn.run(
+        create_app(settings),
+        host=args.host or settings.host,
+        port=args.port or settings.port,
+        log_level="info",
+    )
+
+
+if __name__ == "__main__":
+    main()
