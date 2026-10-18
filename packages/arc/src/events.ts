@@ -5,9 +5,13 @@ import { ApprovalRequiredValue, CUSTOM_EVENTS, UsageValue } from "./types.ts";
 /**
  * Checks an ARC event stream against AG-UI schemas and the ARC sequencing rules:
  * one RUN_STARTED first, exactly one terminal event last, balanced text and tool
- * call lifecycles, and well-formed Armature CUSTOM payloads.
+ * call lifecycles, and well-formed Armature CUSTOM payloads. A resume stream reports
+ * results for calls that ended in the paused stream; pass their ids as `endedToolCalls`.
  */
-export function validateEventStream(events: ArcEvent[]): string[] {
+export function validateEventStream(
+  events: ArcEvent[],
+  opts: { endedToolCalls?: Iterable<string> } = {},
+): string[] {
   const errors: string[] = [];
   if (events.length === 0) return ["stream produced no events"];
   events.forEach((event, i) => {
@@ -27,7 +31,7 @@ export function validateEventStream(events: ArcEvent[]): string[] {
 
   const openText = new Set<string>();
   const openTools = new Set<string>();
-  const endedTools = new Set<string>();
+  const endedTools = new Set<string>(opts.endedToolCalls ?? []);
   for (const [i, e] of events.entries()) {
     const messageId = e.messageId as string | undefined;
     const toolCallId = e.toolCallId as string | undefined;
