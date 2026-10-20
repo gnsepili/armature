@@ -1,0 +1,33 @@
+"""The {{tool.name}} tool.
+
+You own this file: Armature created it once and never overwrites it. The arguments
+model is generated from armature.yaml (runtime/tool_args.py); the description,
+side effect and approval policy live in the spec too.
+"""
+
+from __future__ import annotations
+
+{{#if (and tool.auth_env (ne tool.mode "stub"))}}
+import os
+{{/if}}
+from typing import Any
+
+from ..runtime.tool_args import {{tool.class_name}}Args
+
+
+async def run(args: {{tool.class_name}}Args) -> Any:
+{{#if (and tool.auth_env (ne tool.mode "stub"))}}
+    token = os.environ.get({{py tool.auth_env}})
+    if not token:
+        raise RuntimeError("set {{tool.auth_env}} to call {{tool.name}}")
+{{/if}}
+{{#if (eq tool.mode "stub")}}
+    # Stub: returns example data so the agent runs end to end. Replace it with the
+    # real call; whatever you return is serialized to JSON for the model.
+{{#if tool.auth_env}}
+    # The real call reads its credential from the {{tool.auth_env}} environment variable.
+{{/if}}
+    return {"ok": True, "tool": {{py tool.name}}, "args": args.model_dump()}
+{{else}}
+    raise NotImplementedError
+{{/if}}

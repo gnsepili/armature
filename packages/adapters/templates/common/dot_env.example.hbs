@@ -1,0 +1,12 @@
+# Copy to .env and fill in. .env is git-ignored and never committed.
+{{model.api_key_env}}=
+{{#each tools}}
+{{#if auth_env}}
+# used by the {{name}} tool
+{{auth_env}}=
+{{/if}}
+{{/each}}
+
+# Run against the offline mock LLM instead of {{model.provider}} (used by `armature dev --mock`).
+# ARMATURE_MODEL_MODE=mock
+# ARMATURE_MOCK_URL=http://127.0.0.1:4010/v1
