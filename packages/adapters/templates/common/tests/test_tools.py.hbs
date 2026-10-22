@@ -1,0 +1,32 @@
+"""Tests for your tool implementations. Armature wrote this once; it is yours to change.
+
+The starter test calls every tool with sample arguments. Stub tools return a canned
+result; once you implement a tool, replace its case with real assertions.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import inspect
+
+import pytest
+
+from {{package}}.runtime.registry import TOOLS
+
+SAMPLE = {"string": "example", "integer": 1, "number": 1.5, "boolean": True}
+
+
+def _call(spec, args):
+    result = spec.handler(spec.args_model.model_validate(args))
+    return asyncio.run(result) if inspect.isawaitable(result) else result
+
+
+@pytest.mark.parametrize("name", list(TOOLS))
+def test_tool_accepts_its_arguments(name):
+    spec = TOOLS[name]
+    schema = spec.input_schema
+    args = {k: SAMPLE[v["type"]] for k, v in schema["properties"].items() if k in schema["required"]}
+    try:
+        _call(spec, args)
+    except NotImplementedError:
+        pytest.skip(f"{name} is not implemented yet")

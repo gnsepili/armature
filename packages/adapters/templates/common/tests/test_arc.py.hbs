@@ -1,0 +1,143 @@
+"""ARC contract tests: the agent loop, streaming, approvals and limits, run offline.
+
+Managed by Armature. Your own tests belong in test_tools.py or new files.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+import pytest
+
+from {{package}} import settings as spec
+from {{package}}.runtime.registry import TOOLS
+
+SAMPLE = {"string": "example", "integer": 1, "number": 1.5, "boolean": True}
+
+
+def sample_args(name: str) -> dict[str, Any]:
+    schema = TOOLS[name].input_schema
+    return {k: SAMPLE[v.get("type", "string")] for k, v in schema["properties"].items() if k in schema["required"]}
+
+
+def stubs() -> dict[str, Any]:
+    return {"eval": {"stubs": {name: {"result": {"ok": True, "stub": "test"}} for name in TOOLS}}}
+
+
+def free_tool() -> str | None:
+    return next((n for n, t in TOOLS.items() if not t.requires_approval), None)
+
+
+def gated_tool() -> str | None:
+    return next((n for n, t in TOOLS.items() if t.requires_approval), None)
+
+
+def events(response) -> list[dict[str, Any]]:
+    return [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")]
+
+
+def test_health_and_manifest(client):
+    health = client.get("/health").json()
+    assert health["status"] == "ok" and health["arc_version"] == 1
+    assert health["model_mode"] == "mock" and health["ready"]["credentials"]
+    manifest = client.get("/manifest").json()
+    assert manifest["name"] == spec.NAME
+    assert [t["name"] for t in manifest["tools"]] == list(TOOLS)
+
+
+def test_text_answer(client, mock_llm):
+    if spec.STRUCTURED_OUTPUT_SCHEMA is not None:
+        pytest.skip("structured output needs a schema-specific answer")
+    mock_llm.script({"text": "Hello there."})
+    result = client.post("/runs/wait", json={"input": "hi"}).json()
+    assert result["status"] == "success", result["error"]
+    assert result["output"] == "Hello there."
+    assert result["usage"]["model_calls"] == 1
+    assert result["messages"][0] == {"role": "user", "content": "hi"}
+    assert client.get(f"/runs/{result['run_id']}").json()["duration_ms"] is not None
+
+
+def test_tool_call_runs_through_the_runtime(client, mock_llm):
+    name = free_tool()
+    if name is None:
+        pytest.skip("every tool needs approval")
+    mock_llm.script({"tool_calls": [{"name": name, "args": sample_args(name)}]}, {"text": "{}"})
+    result = client.post("/runs/wait", json={"input": "use a tool", "metadata": stubs()}).json()
+    (call,) = result["tool_calls"]
+    assert call["name"] == name and call["status"] == "completed" and call["stubbed"]
+    tool_messages = [m for m in mock_llm.requests[-1]["messages"] if m["role"] == "tool"]
+    assert json.loads(tool_messages[0]["content"]) == {"ok": True, "stub": "test"}
+
+
+def test_stream_is_well_formed(client, mock_llm):
+    mock_llm.script({"text": "Streaming works."})
+    with client.stream("POST", "/runs/stream", json={"input": "hi"}) as response:
+        response.read()
+    seen = [e["type"] for e in events(response)]
+    assert seen[0] == "RUN_STARTED"
+    assert seen[-1] in {"RUN_FINISHED", "RUN_ERROR"}
+    assert "TEXT_MESSAGE_CONTENT" in seen
+
+
+def test_approval_approve_and_deny(client, mock_llm):
+    name = gated_tool()
+    if name is None:
+        pytest.skip("no tool needs approval")
+    args = sample_args(name)
+    mock_llm.script({"tool_calls": [{"name": name, "args": args, "id": "approve_me"}]}, {"text": "{}"})
+    paused = client.post("/runs/wait", json={"input": "do it", "metadata": stubs()}).json()
+    assert paused["status"] == "interrupted"
+    assert [p["tool_call_id"] for p in paused["pending_approvals"]] == ["approve_me"]
+    done = client.post(
+        f"/runs/{paused['run_id']}/resume", json={"decisions": [{"tool_call_id": "approve_me", "approve": True}]}
+    ).json()
+    assert done["status"] != "interrupted", done["error"]
+    assert done["tool_calls"][0]["approval"] == "approved" and done["tool_calls"][0]["status"] == "completed"
+
+    mock_llm.script({"tool_calls": [{"name": name, "args": args, "id": "deny_me"}]}, {"text": "{}"})
+    paused = client.post("/runs/wait", json={"input": "do it again", "metadata": stubs()}).json()
+    denied = client.post(
+        f"/runs/{paused['run_id']}/resume", json={"decisions": [{"tool_call_id": "deny_me", "approve": False}]}
+    ).json()
+    assert denied["status"] != "interrupted"
+    assert denied["tool_calls"][0]["status"] == "denied"
+    last = mock_llm.requests[-1]["messages"]
+    assert any(m["role"] == "tool" and m.get("tool_call_id") == "deny_me" for m in last)
+
+
+def test_limits_stop_the_run(client, mock_llm):
+    name = free_tool()
+    if name is None:
+        pytest.skip("every tool needs approval")
+    n = min(spec.LIMITS["max_steps"], spec.LIMITS["max_tool_calls"]) + 1
+    mock_llm.script(*[{"tool_calls": [{"name": name, "args": sample_args(name)}]} for _ in range(n)])
+    result = client.post("/runs/wait", json={"input": "loop", "metadata": stubs()}).json()
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "limit_exceeded"
+
+
+def test_model_error_is_reported(client, mock_llm):
+    mock_llm.script({"error": "boom"})
+    result = client.post("/runs/wait", json={"input": "hi"}).json()
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "model_error"
+
+
+def test_eval_metadata_needs_eval_mode(app_client):
+    response = app_client.post("/runs/wait", json={"input": "hi", "metadata": stubs()})
+    assert response.status_code == 400
+
+
+def test_session_memory(client, mock_llm):
+    first = client.post("/runs/wait", json={"input": "remember 42", "thread_id": "t1"}).json()
+    client.post("/runs/wait", json={"input": "what was it?", "thread_id": "t1"})
+    users = [m for m in mock_llm.requests[-1]["messages"] if m["role"] == "user"]
+    if spec.SESSION_MEMORY["enabled"]:
+        assert len(users) == 2
+        assert client.get("/threads/t1").json()["thread_id"] == "t1"
+        assert client.delete("/threads/t1").json()["deleted"] is True
+        assert client.get("/threads/t1").status_code == 404
+    else:
+        assert len(users) == 1
+    assert first["thread_id"] == "t1"
