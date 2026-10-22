@@ -1,0 +1,247 @@
+"""LangGraph agent for {{name}}, built with langchain's create_agent.
+
+Managed by Armature: change armature.yaml and run `armature generate` rather than
+editing this file. Your code lives in tools/ and prompts/.
+
+Armature's middleware wraps every model and tool call so the runtime can stream ARC
+events, enforce limits and record tool calls. Approvals use LangGraph interrupts
+through HumanInTheLoopMiddleware, so a paused run survives in the checkpointer.
+"""
+
+from __future__ import annotations
+
+from contextlib import AsyncExitStack
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+from pathlib import Path
+{{/if}}
+from typing import Any
+
+import httpx
+from langchain.agents import create_agent as create_langchain_agent
+from langchain.agents.middleware import AgentMiddleware, HumanInTheLoopMiddleware
+from langchain_core.callbacks import AsyncCallbackHandler
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.tools import StructuredTool
+{{#if (eq model.provider "anthropic")}}
+from langchain_anthropic import ChatAnthropic
+{{/if}}
+from langchain_openai import ChatOpenAI
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+{{else}}
+from langgraph.checkpoint.memory import InMemorySaver
+{{/if}}
+from langgraph.errors import GraphRecursionError
+from langgraph.types import Command
+
+from . import settings as spec
+from .runtime.context import Final, Interrupted, RunContext, current
+from .runtime.prompt import system_prompt
+from .runtime.registry import TOOLS
+from .runtime.tools import DENIED_MESSAGE, invoke
+from .settings import Settings
+
+
+class _TokenStream(AsyncCallbackHandler):
+    """Forwards streamed text deltas to the run's ARC event stream."""
+
+    def __init__(self, ctx: RunContext) -> None:
+        self.ctx = ctx
+
+    async def on_llm_new_token(self, token: Any, *, chunk: Any = None, **kwargs: Any) -> None:
+        message = getattr(chunk, "message", None)
+        text = message.text if message is not None else (token if isinstance(token, str) else "")
+        self.ctx.text_delta(text)
+
+
+def _ai_message(response: Any) -> AIMessage | None:
+    if isinstance(response, AIMessage):
+        return response
+    inner = getattr(response, "model_response", response)
+    return next((m for m in reversed(getattr(inner, "result", [])) if isinstance(m, AIMessage)), None)
+
+
+class ArmatureMiddleware(AgentMiddleware):
+    """Reports model calls to the run context and executes tools through the runtime."""
+
+    async def awrap_model_call(self, request, handler):
+        ctx = current()
+        ctx.model_start()
+        try:
+            response = await handler(request)
+        except Exception as exc:
+            raise ctx.model_failed(exc) from exc
+        message = _ai_message(response)
+        usage = (message.usage_metadata if message is not None else None) or {}
+        ctx.model_end(
+            input_tokens=int(usage.get("input_tokens", 0)),
+            output_tokens=int(usage.get("output_tokens", 0)),
+            text=message.text if message is not None else "",
+            tool_calls=[
+                {"id": c["id"], "name": c["name"], "args": c["args"]}
+                for c in (message.tool_calls if message is not None else [])
+            ],
+            streamed=ctx.text_open,
+        )
+        return response
+
+    async def awrap_tool_call(self, request, handler):
+        call = request.tool_call
+        content = await invoke(call["name"], call["id"], dict(call.get("args") or {}))
+        return ToolMessage(content=content, tool_call_id=call["id"], name=call["name"])
+
+
+async def _not_called(**kwargs: Any) -> Any:  # ArmatureMiddleware executes tools itself
+    raise RuntimeError("tools run through ArmatureMiddleware")
+
+
+def _tools() -> list[StructuredTool]:
+    return [
+        StructuredTool.from_function(
+            coroutine=_not_called, name=t.name, description=t.description, args_schema=t.input_schema
+        )
+        for t in TOOLS.values()
+    ]
+
+
+def _options(**values: Any) -> dict[str, Any]:
+    return {k: v for k, v in values.items() if v is not None}
+
+
+def build_model(settings: Settings, http: httpx.AsyncClient):
+    """The chat model. `http` is owned by the agent so no connection outlives its event loop."""
+    timeout = float(settings.limits["timeout_s"])
+    if settings.model_mode == "mock":
+        return ChatOpenAI(
+            model=spec.MOCK_MODEL_ID,
+            api_key="mock",
+            base_url=settings.mock_url,
+            http_async_client=http,
+            timeout=timeout,
+            streaming=True,
+            stream_usage=True,
+            max_retries=0,
+        )
+    # A missing key still lets the server start; /health reports it and calls fail clearly.
+    api_key = settings.api_key or "missing-api-key"
+{{#if (eq model.provider "anthropic")}}
+    # ChatAnthropic manages its own HTTP client; one server process uses one event loop.
+    return ChatAnthropic(
+        model=spec.MODEL_ID,
+        api_key=api_key,
+        timeout=timeout,
+        streaming=True,
+        stream_usage=True,
+        max_retries=2,
+        **_options(
+            base_url=spec.MODEL_BASE_URL,
+            temperature=spec.MODEL_TEMPERATURE,
+            max_tokens=spec.MODEL_MAX_OUTPUT_TOKENS,
+        ),
+    )
+{{else}}
+    return ChatOpenAI(
+        model=spec.MODEL_ID,
+        api_key=api_key,
+        http_async_client=http,
+        timeout=timeout,
+        streaming=True,
+        stream_usage=True,
+        max_retries=2,
+        **_options(
+            base_url=spec.MODEL_BASE_URL,
+            temperature=spec.MODEL_TEMPERATURE,
+            max_completion_tokens=spec.MODEL_MAX_OUTPUT_TOKENS,
+        ),
+    )
+{{/if}}
+
+
+def _text(message: BaseMessage) -> str:
+    return message.text if isinstance(message.text, str) else str(message.content)
+
+
+def to_arc_messages(messages: list[BaseMessage]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for m in messages:
+        if isinstance(m, HumanMessage):
+            out.append({"role": "user", "content": _text(m)})
+        elif isinstance(m, AIMessage):
+            item: dict[str, Any] = {"role": "assistant", "content": _text(m)}
+            if m.tool_calls:
+                item["tool_calls"] = [{"id": c["id"], "name": c["name"], "args": c["args"]} for c in m.tool_calls]
+            out.append(item)
+        elif isinstance(m, ToolMessage):
+            out.append({"role": "tool", "content": _text(m), "tool_call_id": m.tool_call_id})
+    return out
+
+
+class LangGraphAgent:
+    """The AgentAdapter the ARC runtime drives (see runtime/runner.py)."""
+
+    def __init__(self, graph: Any, checkpointer: Any, stack: AsyncExitStack) -> None:
+        self.graph = graph
+        self.checkpointer = checkpointer
+        self._stack = stack
+
+    def _config(self, ctx: RunContext | None, key: str) -> dict[str, Any]:
+        config: dict[str, Any] = {"configurable": {"thread_id": key}}
+        if ctx is not None:
+            config["recursion_limit"] = int(ctx.limits["max_steps"]) * 3 + 10
+            config["callbacks"] = [_TokenStream(ctx)]
+        return config
+
+    async def _invoke(self, ctx: RunContext, key: str, payload: Any) -> Final | Interrupted:
+        try:
+            result = await self.graph.ainvoke(payload, config=self._config(ctx, key))
+        except GraphRecursionError as exc:
+            raise ctx.abort("limit_exceeded", f"max_steps ({ctx.limits['max_steps']}) reached") from exc
+        if result.get("__interrupt__"):
+            return Interrupted([p["tool_call_id"] for p in ctx.pending_approvals()])
+        last = next((m for m in reversed(result.get("messages", [])) if isinstance(m, AIMessage)), None)
+        return Final(_text(last) if last is not None else "")
+
+    async def run(self, ctx: RunContext, key: str, messages: list[dict[str, Any]]) -> Final | Interrupted:
+        return await self._invoke(ctx, key, {"messages": [(m["role"], m["content"]) for m in messages]})
+
+    async def resume(self, ctx: RunContext, key: str, decisions: list[dict[str, Any]]) -> Final | Interrupted:
+        answers = [
+            {"type": "approve"} if d["approve"] else {"type": "reject", "message": DENIED_MESSAGE}
+            for d in decisions
+        ]
+        return await self._invoke(ctx, key, Command(resume={"decisions": answers}))
+
+    async def history(self, key: str) -> list[dict[str, Any]]:
+        snapshot = await self.graph.aget_state(self._config(None, key))
+        return to_arc_messages((snapshot.values or {}).get("messages", []))
+
+    async def delete(self, key: str) -> None:
+        await self.checkpointer.adelete_thread(key)
+
+    async def close(self) -> None:
+        await self._stack.aclose()
+
+
+async def create_agent(settings: Settings) -> LangGraphAgent:
+    stack = AsyncExitStack()
+    http = httpx.AsyncClient(timeout=float(settings.limits["timeout_s"]))
+    stack.push_async_callback(http.aclose)
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+    Path(settings.session_db).parent.mkdir(parents=True, exist_ok=True)
+    checkpointer = await stack.enter_async_context(AsyncSqliteSaver.from_conn_string(settings.session_db))
+{{else}}
+    checkpointer = InMemorySaver()
+{{/if}}
+    middleware: list[AgentMiddleware] = [ArmatureMiddleware()]
+    gated = {name: True for name, t in TOOLS.items() if t.requires_approval}
+    if gated:
+        middleware.append(HumanInTheLoopMiddleware(interrupt_on=gated))
+    graph = create_langchain_agent(
+        build_model(settings, http),
+        _tools(),
+        system_prompt=system_prompt() or None,
+        middleware=middleware,
+        checkpointer=checkpointer,
+        name=spec.NAME,
+    )
+    return LangGraphAgent(graph, checkpointer, stack)
