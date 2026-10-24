@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Armature playground</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <div class="brand-text">
+          <h1 id="agent-name">Armature playground</h1>
+          <p id="agent-meta" class="muted">Connecting to the agent...</p>
+        </div>
+        <span id="mode-badge" class="badge badge-mode" hidden></span>
+      </div>
+      <nav class="links" aria-label="Agent endpoints">
+        <a id="link-docs" href="/arc/docs" target="_blank" rel="noopener">Swagger</a>
+        <a id="link-manifest" href="/arc/manifest" target="_blank" rel="noopener">Manifest</a>
+        <a id="link-health" href="/arc/health" target="_blank" rel="noopener">Health</a>
+      </nav>
+    </header>
+
+    <div id="banner" class="banner" role="status" hidden></div>
+
+    <main class="layout">
+      <aside class="panel threads" aria-labelledby="threads-title">
+        <div class="panel-head">
+          <h2 id="threads-title">Threads</h2>
+          <button id="new-thread" type="button" class="btn btn-small">New thread</button>
+        </div>
+        <ul id="thread-list" class="thread-list"></ul>
+      </aside>
+
+      <section class="chat" aria-label="Conversation">
+        <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text">
+          <p id="empty-state" class="empty muted">Send a message to start a run. Tool calls, approvals and usage appear inline.</p>
+        </div>
+        <form id="composer" class="composer">
+          <label for="input" class="sr-only">Message</label>
+          <textarea id="input" rows="2" placeholder="Message the agent (Enter to send, Shift+Enter for newline)" autocomplete="off"></textarea>
+          <button id="send" type="submit" class="btn btn-primary">Send</button>
+        </form>
+      </section>
+
+      <aside class="panel side" aria-labelledby="tools-title">
+        <div class="panel-head">
+          <h2 id="tools-title">Tools</h2>
+        </div>
+        <p id="agent-description" class="muted small"></p>
+        <ul id="tool-list" class="tool-list"></ul>
+        <h3 class="side-sub">Limits</h3>
+        <dl id="limits" class="limits"></dl>
+      </aside>
+    </main>
+  </body>
+</html>
