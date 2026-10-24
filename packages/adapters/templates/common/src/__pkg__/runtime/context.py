@@ -188,6 +188,11 @@ class RunContext:
         """True while streamed text deltas of the current model call are being emitted."""
         return self._text_id is not None
 
+    @property
+    def in_model_call(self) -> bool:
+        """True between model_start and the end (or failure) of that model call."""
+        return self._chat_span is not None
+
     def model_failed(self, error: BaseException) -> RunAborted:
         if self._chat_span is not None:
             self.end_span(self._chat_span, "error")

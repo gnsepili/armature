@@ -1,0 +1,267 @@
+"""OpenAI Agents SDK agent for {{name}}.
+
+Managed by Armature: change armature.yaml and run `armature generate` rather than
+editing this file. Your code lives in tools/ and prompts/.
+
+Run hooks report every model call to the ARC runtime, and each tool's
+on_invoke_tool goes through the runtime so limits, stubs and records apply. Tools
+that need approval use the SDK's needs_approval: a paused run keeps its RunState
+here until the reviewer's decisions arrive.
+"""
+
+from __future__ import annotations
+
+import json
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+from pathlib import Path
+{{/if}}
+from typing import Any
+
+import httpx
+from agents import (
+    Agent,
+    AsyncOpenAI,
+    FunctionTool,
+    MaxTurnsExceeded,
+    ModelResponse,
+    ModelSettings,
+    OpenAIChatCompletionsModel,
+    OpenAIResponsesModel,
+    RunConfig,
+    RunContextWrapper,
+    RunHooks,
+    Runner,
+    RunState,
+    SQLiteSession,
+)
+from agents.tool_context import ToolContext
+
+from . import settings as spec
+from .runtime.context import Final, Interrupted, RunAborted, RunContext, current
+from .runtime.prompt import system_prompt
+from .runtime.registry import TOOLS
+from .runtime.tools import DENIED_MESSAGE, invoke
+from .settings import Settings
+
+
+def _call_args(raw: str | None) -> dict[str, Any]:
+    try:
+        value = json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _response_parts(response: ModelResponse) -> tuple[str, list[dict[str, Any]]]:
+    text: list[str] = []
+    calls: list[dict[str, Any]] = []
+    for item in response.output:
+        kind = getattr(item, "type", None)
+        if kind == "message":
+            text.extend(getattr(part, "text", "") or "" for part in item.content)
+        elif kind == "function_call":
+            calls.append({"id": item.call_id, "name": item.name, "args": _call_args(item.arguments)})
+    return "".join(text), calls
+
+
+class ArmatureHooks(RunHooks):
+    """Reports model calls to the run context."""
+
+    async def on_llm_start(self, context: RunContextWrapper, agent: Agent, system_prompt, input_items) -> None:
+        current().model_start()
+
+    async def on_llm_end(self, context: RunContextWrapper, agent: Agent, response: ModelResponse) -> None:
+        ctx = current()
+        text, calls = _response_parts(response)
+        usage = response.usage
+        ctx.model_end(
+            input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+            text=text,
+            tool_calls=calls,
+            streamed=ctx.text_open,
+        )
+
+
+def _function_tool(name: str) -> FunctionTool:
+    t = TOOLS[name]
+
+    async def on_invoke(tool_ctx: ToolContext, args_json: str) -> str:
+        return await invoke(name, tool_ctx.tool_call_id, _call_args(args_json))
+
+    return FunctionTool(
+        name=t.name,
+        description=t.description,
+        params_json_schema=t.input_schema,
+        on_invoke_tool=on_invoke,
+        strict_json_schema=False,
+        needs_approval=t.requires_approval,
+    )
+
+
+def build_model(settings: Settings, http: httpx.AsyncClient):
+    """The model. `http` is owned by the agent so no connection outlives its event loop."""
+    timeout = float(settings.limits["timeout_s"])
+    if settings.model_mode == "mock":
+        client = AsyncOpenAI(
+            base_url=settings.mock_url, api_key="mock", http_client=http, timeout=timeout, max_retries=0
+        )
+        return OpenAIChatCompletionsModel(model=spec.MOCK_MODEL_ID, openai_client=client)
+    # A missing key still lets the server start; /health reports it and calls fail clearly.
+    client = AsyncOpenAI(
+        api_key=settings.api_key or "missing-api-key",
+        base_url=spec.MODEL_BASE_URL,
+        http_client=http,
+        timeout=timeout,
+        max_retries=2,
+    )
+{{#if (eq model.provider "openai_compatible")}}
+    return OpenAIChatCompletionsModel(model=spec.MODEL_ID, openai_client=client)
+{{else}}
+    return OpenAIResponsesModel(model=spec.MODEL_ID, openai_client=client)
+{{/if}}
+
+
+def _text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(str(p.get("text", "")) for p in content if isinstance(p, dict))
+    return "" if content is None else str(content)
+
+
+def to_arc_messages(items: list[Any]) -> list[dict[str, Any]]:
+    """Converts session items (Responses input format) to ARC messages."""
+    out: list[dict[str, Any]] = []
+    for raw in items:
+        item = raw if isinstance(raw, dict) else raw.model_dump(exclude_none=True)
+        kind = item.get("type", "message")
+        if kind == "message" and item.get("role") in {"user", "assistant"}:
+            out.append({"role": item["role"], "content": _text(item.get("content"))})
+        elif kind == "function_call":
+            call = {"id": item["call_id"], "name": item["name"], "args": _call_args(item.get("arguments"))}
+            last = out[-1] if out else None
+            if last is None or last["role"] != "assistant" or (last["content"] and "tool_calls" not in last):
+                last = {"role": "assistant", "content": ""}
+                out.append(last)
+            last.setdefault("tool_calls", []).append(call)
+        elif kind == "function_call_output":
+            out.append({"role": "tool", "content": _text(item.get("output")), "tool_call_id": item["call_id"]})
+    return out
+
+
+class AgentsSdkAgent:
+    """The AgentAdapter the ARC runtime drives (see runtime/runner.py)."""
+
+    def __init__(self, agent: Agent, settings: Settings, http: httpx.AsyncClient) -> None:
+        self.agent = agent
+        self.settings = settings
+        self._http = http
+        self._sessions: dict[str, SQLiteSession] = {}
+        self._paused: dict[str, RunState] = {}
+        self._run_config = RunConfig(
+            workflow_name=spec.NAME,
+            tracing_disabled=settings.model_mode == "mock",
+            trace_include_sensitive_data=bool(spec.CAPTURE_CONTENT),
+        )
+
+    def _session(self, key: str) -> SQLiteSession:
+        session = self._sessions.get(key)
+        if session is None:
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+            session = SQLiteSession(key, self.settings.session_db)
+{{else}}
+            session = SQLiteSession(key)
+{{/if}}
+            self._sessions[key] = session
+        return session
+
+    async def _drive(self, ctx: RunContext, key: str, payload: Any) -> Final | Interrupted:
+        result = Runner.run_streamed(
+            self.agent,
+            payload,
+            max_turns=int(ctx.limits["max_steps"]) + 1,
+            hooks=ArmatureHooks(),
+            run_config=self._run_config,
+            session=self._session(key),
+        )
+        try:
+            async for event in result.stream_events():
+                if event.type == "raw_response_event" and event.data.type == "response.output_text.delta":
+                    ctx.text_delta(event.data.delta)
+        except MaxTurnsExceeded as exc:
+            raise ctx.abort("limit_exceeded", f"max_steps ({ctx.limits['max_steps']}) reached") from exc
+        except RunAborted:
+            raise
+        except Exception as exc:
+            if ctx.aborted is not None:  # the SDK wraps errors raised inside tools and hooks
+                raise ctx.aborted from exc
+            if ctx.in_model_call:
+                raise ctx.model_failed(exc) from exc
+            raise
+        if result.interruptions:
+            self._paused[key] = result.to_state()
+            return Interrupted([p["tool_call_id"] for p in ctx.pending_approvals()])
+        output = result.final_output
+        return Final(output if isinstance(output, str) else json.dumps(output, default=str))
+
+    async def run(self, ctx: RunContext, key: str, messages: list[dict[str, Any]]) -> Final | Interrupted:
+        return await self._drive(ctx, key, [{"role": m["role"], "content": m["content"]} for m in messages])
+
+    async def resume(self, ctx: RunContext, key: str, decisions: list[dict[str, Any]]) -> Final | Interrupted:
+        state = self._paused.pop(key)
+        by_id = {d["tool_call_id"]: d for d in decisions}
+        for item in state.get_interruptions():
+            decision = by_id.get(getattr(item.raw_item, "call_id", None))
+            if decision is not None and decision["approve"]:
+                state.approve(item)
+            else:
+                state.reject(item, rejection_message=DENIED_MESSAGE)
+        return await self._drive(ctx, key, state)
+
+    async def history(self, key: str) -> list[dict[str, Any]]:
+        session = self._sessions.get(key)
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+        if session is None:
+            session = self._session(key)
+{{else}}
+        if session is None:
+            return []
+{{/if}}
+        return to_arc_messages(await session.get_items())
+
+    async def delete(self, key: str) -> None:
+        self._paused.pop(key, None)
+        session = self._sessions.pop(key, None)
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+        if session is None:
+            session = SQLiteSession(key, self.settings.session_db)
+{{/if}}
+        if session is not None:
+            await session.clear_session()
+            session.close()
+
+    async def close(self) -> None:
+        for session in self._sessions.values():
+            session.close()
+        self._sessions.clear()
+        await self._http.aclose()
+
+
+async def create_agent(settings: Settings) -> AgentsSdkAgent:
+{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}
+    Path(settings.session_db).parent.mkdir(parents=True, exist_ok=True)
+{{/if}}
+    http = httpx.AsyncClient(timeout=float(settings.limits["timeout_s"]))
+    agent = Agent(
+        name=spec.NAME,
+        instructions=system_prompt() or None,
+        tools=[_function_tool(name) for name in TOOLS],
+        model=build_model(settings, http),
+        model_settings=ModelSettings(
+            include_usage=True,
+            temperature=spec.MODEL_TEMPERATURE,
+            max_tokens=spec.MODEL_MAX_OUTPUT_TOKENS,
+        ),
+    )
+    return AgentsSdkAgent(agent, settings, http)
