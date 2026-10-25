@@ -1,0 +1,51 @@
+{
+  "name": "armature-agents",
+  "version": "0.1.0",
+  "description": "Compile armature.yaml into framework-native Python agent projects with an eval-first workflow.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "armature": "dist/armature.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gnsepili/armature.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "agents",
+    "langgraph",
+    "openai-agents",
+    "scaffolding",
+    "evals",
+    "cli"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "tsx src/bin.ts"
+  },
+  "dependencies": {
+    "@ag-ui/core": "1.0.4",
+    "@clack/prompts": "1.9.0",
+    "commander": "15.1.0",
+    "handlebars": "4.7.10",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@armature/adapters": "workspace:*",
+    "@armature/arc": "workspace:*",
+    "@armature/core": "workspace:*",
+    "@armature/mock-llm": "workspace:*",
+    "@armature/playground": "workspace:*",
+    "@armature/schema": "workspace:*",
+    "esbuild": "0.28.2"
+  }
+}
