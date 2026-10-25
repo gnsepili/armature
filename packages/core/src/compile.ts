@@ -28,6 +28,10 @@ export function loadSpec(path: string): LoadedSpec {
       "run `armature init` to create one, or pass --spec <path>",
     );
   }
+  return parseSpecText(text, path);
+}
+
+export function parseSpecText(text: string, path = SPEC_FILE): LoadedSpec {
   return { spec: parseAgentSpec(parseYamlText(text, path), path), text, path };
 }
 
@@ -72,6 +76,8 @@ export interface GenerateOptions {
   dir: string;
   /** Defaults to <dir>/armature.yaml. */
   specPath?: string;
+  /** Spec source to use instead of reading specPath, e.g. for `init --dry-run`. */
+  specText?: string;
   force?: boolean;
   dryRun?: boolean;
   allowExperimental?: boolean;
@@ -91,7 +97,9 @@ export interface GenerateResult extends Compiled {
  */
 export function generate(opts: GenerateOptions): GenerateResult {
   const dir = resolve(opts.dir);
-  const { spec, text } = loadSpec(opts.specPath ?? join(dir, SPEC_FILE));
+  const specPath = opts.specPath ?? join(dir, SPEC_FILE);
+  const { spec, text } =
+    opts.specText === undefined ? loadSpec(specPath) : parseSpecText(opts.specText, specPath);
   const compiled = compile(spec, { allowExperimental: opts.allowExperimental });
   const previous = readLock(dir);
   if (!previous) assertInitTarget(dir, Boolean(opts.force));
