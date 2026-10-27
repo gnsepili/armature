@@ -60,6 +60,8 @@ describe("applyFiles", () => {
 
     const forced = applyFiles({ dir, files: files("3"), previous: lockFor(files("2")), force: true });
     expect(action(forced, "pyproject.toml")).toBe("update");
+    expect(action(forced, "src/app/tools/lookup.py")).toBe("skip-owned");
+    expect(readFileSync(join(dir, "src/app/tools/lookup.py"), "utf8")).toBe("# 1\n");
   });
 
   it("removes orphaned managed files only when unmodified", () => {

@@ -96,7 +96,9 @@ export function applyFiles(opts: {
       entries[file.path] = fresh;
       continue;
     }
-    if (file.ownership === "generated-once" && previous && !force) {
+    // Files the user owns (tools, prompts) are never overwritten once tracked, not even
+    // with --force: force only applies to managed files.
+    if (file.ownership === "generated-once" && previous) {
       actions.push({ path: file.path, action: "skip-owned" });
       entries[file.path] = before ?? fresh;
       continue;
