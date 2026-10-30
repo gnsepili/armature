@@ -42,6 +42,13 @@ Each run stops with `limit_exceeded` after {{limits.max_steps}} model calls, {{l
 tool calls, {{limits.max_tokens}} tokens or ${{limits.max_cost_usd}}, and with `timeout` after
 {{limits.timeout_s}} seconds.
 
+## Tests
+
+`uv run pytest` runs offline against a scripted mock model. `tests/test_arc.py` covers the HTTP
+contract (answers, tool calls, streaming, approvals, sessions); `tests/test_guardrails.py`
+breaches each limit, times out a run and a tool, feeds tool errors and bad arguments back to
+the model, and checks structured-output repair. Put your own tests in `tests/test_tools.py`.
+
 ## HTTP API
 
 The server speaks ARC v1: `GET /health`, `GET /manifest`, `POST /runs/wait`,

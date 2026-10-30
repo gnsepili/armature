@@ -37,6 +37,37 @@ def events(response) -> list[dict[str, Any]]:
     return [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")]
 
 
+def sample_value(schema: dict[str, Any]) -> Any:
+    """A minimal value that satisfies a simple JSON schema (enough for output tests)."""
+    if "const" in schema:
+        return schema["const"]
+    if schema.get("enum"):
+        return schema["enum"][0]
+    for key in ("anyOf", "oneOf"):
+        if schema.get(key):
+            return sample_value(schema[key][0])
+    kind = schema.get("type", "object")
+    if isinstance(kind, list):
+        kind = next((k for k in kind if k != "null"), "null")
+    if kind == "object":
+        props = schema.get("properties", {})
+        return {k: sample_value(props[k]) for k in schema.get("required", []) if k in props}
+    if kind == "array":
+        return [sample_value(schema["items"])] * schema.get("minItems", 0) if "items" in schema else []
+    if kind == "string":
+        return "x" * schema.get("minLength", 1)
+    if kind in {"integer", "number"}:
+        return schema.get("minimum", 1)
+    return {"boolean": True, "null": None}.get(kind)
+
+
+def final_text() -> str:
+    """A final answer the runtime accepts, with or without an output schema."""
+    if spec.STRUCTURED_OUTPUT_SCHEMA is None:
+        return "Done."
+    return json.dumps(sample_value(spec.STRUCTURED_OUTPUT_SCHEMA))
+
+
 def test_health_and_manifest(client):
     health = client.get("/health").json()
     assert health["status"] == "ok" and health["arc_version"] == 1
@@ -47,12 +78,11 @@ def test_health_and_manifest(client):
 
 
 def test_text_answer(client, mock_llm):
-    if spec.STRUCTURED_OUTPUT_SCHEMA is not None:
-        pytest.skip("structured output needs a schema-specific answer")
-    mock_llm.script({"text": "Hello there."})
+    answer = final_text()
+    mock_llm.script({"text": answer})
     result = client.post("/runs/wait", json={"input": "hi"}).json()
     assert result["status"] == "success", result["error"]
-    assert result["output"] == "Hello there."
+    assert result["output"] == (answer if spec.STRUCTURED_OUTPUT_SCHEMA is None else json.loads(answer))
     assert result["usage"]["model_calls"] == 1
     assert result["messages"][0] == {"role": "user", "content": "hi"}
     assert client.get(f"/runs/{result['run_id']}").json()["duration_ms"] is not None
@@ -62,7 +92,7 @@ def test_tool_call_runs_through_the_runtime(client, mock_llm):
     name = free_tool()
     if name is None:
         pytest.skip("every tool needs approval")
-    mock_llm.script({"tool_calls": [{"name": name, "args": sample_args(name)}]}, {"text": "{}"})
+    mock_llm.script({"tool_calls": [{"name": name, "args": sample_args(name)}]}, {"text": final_text()})
     result = client.post("/runs/wait", json={"input": "use a tool", "metadata": stubs()}).json()
     (call,) = result["tool_calls"]
     assert call["name"] == name and call["status"] == "completed" and call["stubbed"]
@@ -71,7 +101,7 @@ def test_tool_call_runs_through_the_runtime(client, mock_llm):
 
 
 def test_stream_is_well_formed(client, mock_llm):
-    mock_llm.script({"text": "Streaming works."})
+    mock_llm.script({"text": final_text()})
     with client.stream("POST", "/runs/stream", json={"input": "hi"}) as response:
         response.read()
     seen = [e["type"] for e in events(response)]
@@ -85,22 +115,22 @@ def test_approval_approve_and_deny(client, mock_llm):
     if name is None:
         pytest.skip("no tool needs approval")
     args = sample_args(name)
-    mock_llm.script({"tool_calls": [{"name": name, "args": args, "id": "approve_me"}]}, {"text": "{}"})
+    mock_llm.script({"tool_calls": [{"name": name, "args": args, "id": "approve_me"}]}, {"text": final_text()})
     paused = client.post("/runs/wait", json={"input": "do it", "metadata": stubs()}).json()
     assert paused["status"] == "interrupted"
     assert [p["tool_call_id"] for p in paused["pending_approvals"]] == ["approve_me"]
     done = client.post(
         f"/runs/{paused['run_id']}/resume", json={"decisions": [{"tool_call_id": "approve_me", "approve": True}]}
     ).json()
-    assert done["status"] != "interrupted", done["error"]
+    assert done["status"] == "success", done["error"]
     assert done["tool_calls"][0]["approval"] == "approved" and done["tool_calls"][0]["status"] == "completed"
 
-    mock_llm.script({"tool_calls": [{"name": name, "args": args, "id": "deny_me"}]}, {"text": "{}"})
+    mock_llm.script({"tool_calls": [{"name": name, "args": args, "id": "deny_me"}]}, {"text": final_text()})
     paused = client.post("/runs/wait", json={"input": "do it again", "metadata": stubs()}).json()
     denied = client.post(
         f"/runs/{paused['run_id']}/resume", json={"decisions": [{"tool_call_id": "deny_me", "approve": False}]}
     ).json()
-    assert denied["status"] != "interrupted"
+    assert denied["status"] == "success", denied["error"]
     assert denied["tool_calls"][0]["status"] == "denied"
     last = mock_llm.requests[-1]["messages"]
     assert any(m["role"] == "tool" and m.get("tool_call_id") == "deny_me" for m in last)
@@ -130,6 +160,7 @@ def test_eval_metadata_needs_eval_mode(app_client):
 
 
 def test_session_memory(client, mock_llm):
+    mock_llm.script({"text": final_text()}, {"text": final_text()})
     first = client.post("/runs/wait", json={"input": "remember 42", "thread_id": "t1"}).json()
     client.post("/runs/wait", json={"input": "what was it?", "thread_id": "t1"})
     users = [m for m in mock_llm.requests[-1]["messages"] if m["role"] == "user"]

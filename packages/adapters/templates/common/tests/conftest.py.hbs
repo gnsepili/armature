@@ -6,6 +6,8 @@ queue model steps with `mock_llm.script(...)`, then call the ARC API.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import json
 import socket
 import threading
@@ -24,7 +26,8 @@ from {{package}}.settings import Settings
 
 
 class MockLLM:
-    """Replies with queued steps: {"text": ...} or {"tool_calls": [{"name": ..., "args": {...}}]}.
+    """Replies with queued steps: {"text": ...}, {"tool_calls": [{"name": ..., "args": {...}}]}
+    or {"error": ...}. Add "delay" (seconds) to a step to make the reply slow.
 
     With nothing queued it answers "Done.". Every request body is kept in `requests`.
     """
@@ -71,6 +74,8 @@ def _mock_app(mock: MockLLM) -> FastAPI:
         body = await request.json()
         mock.requests.append(body)
         step = mock.next_step()
+        if step.get("delay"):
+            await asyncio.sleep(step["delay"])
         if "error" in step:
             return JSONResponse({"error": {"message": step["error"], "type": "server_error"}}, status_code=500)
         calls = mock.tool_calls(step)
@@ -133,13 +138,15 @@ def mock_llm():
     thread.join(timeout=5)
 
 
-def _settings(mock: MockLLM, tmp_path, eval_mode: bool) -> Settings:
-    return Settings(
+def _settings(mock: MockLLM, tmp_path, eval_mode: bool, **limits: Any) -> Settings:
+    settings = Settings(
         model_mode="mock",
         mock_url=mock.url,
         eval_mode=eval_mode,
         session_db=str(tmp_path / "sessions.db"),
     )
+    settings.limits.update(limits)
+    return settings
 
 
 @pytest.fixture
@@ -156,3 +163,16 @@ def app_client(mock_llm, tmp_path):
     mock_llm.reset()
     with TestClient(create_app(_settings(mock_llm, tmp_path, eval_mode=False))) as c:
         yield c
+
+
+@pytest.fixture
+def make_client(mock_llm, tmp_path):
+    """Builds an eval-mode ARC client with some limits overridden: make_client(max_steps=2)."""
+    mock_llm.reset()
+
+    @contextlib.contextmanager
+    def build(**limits: Any):
+        with TestClient(create_app(_settings(mock_llm, tmp_path, eval_mode=True, **limits))) as c:
+            yield c
+
+    return build

@@ -1,0 +1,149 @@
+"""Guardrail tests: side-effect classes, limits, timeouts, tool errors and structured output.
+
+Managed by Armature. Each test drives the real agent loop against the scripted mock
+model, with the limits tightened through Settings so the breach happens quickly.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import time
+
+import pytest
+from test_arc import final_text, free_tool, gated_tool, sample_args, sample_value, stubs
+
+from {{package}} import settings as spec
+from {{package}}.runtime import registry
+from {{package}}.runtime.registry import TOOLS
+
+WRITE_EFFECTS = {"write", "destructive"}
+
+
+def test_side_effect_classes_follow_the_approval_policy(client):
+    manifest = {t["name"]: t for t in client.get("/manifest").json()["tools"]}
+    for name, tool in TOOLS.items():
+        expected = tool.side_effect in WRITE_EFFECTS and spec.APPROVALS[tool.side_effect] == "require"
+        assert tool.requires_approval == expected, name
+        assert manifest[name]["side_effect"] == tool.side_effect
+        assert manifest[name]["requires_approval"] == expected
+
+
+def test_write_tools_never_run_for_real_in_eval_mode(client, mock_llm):
+    name = next((n for n, t in TOOLS.items() if t.side_effect in WRITE_EFFECTS), None)
+    if name is None:
+        pytest.skip("no write or destructive tools")
+    mock_llm.script({"tool_calls": [{"name": name, "args": sample_args(name), "id": "w1"}]}, {"text": final_text()})
+    result = client.post("/runs/wait", json={"input": "do it"}).json()
+    if result["status"] == "interrupted":
+        decisions = [{"tool_call_id": "w1", "approve": True}]
+        result = client.post(f"/runs/{result['run_id']}/resume", json={"decisions": decisions}).json()
+    (call,) = result["tool_calls"]
+    assert call["stubbed"] is True and call["status"] == "completed"
+
+
+def test_approval_with_edited_arguments(client, mock_llm):
+    name = gated_tool()
+    if name is None:
+        pytest.skip("no tool needs approval")
+    args = sample_args(name)
+    mock_llm.script({"tool_calls": [{"name": name, "args": args, "id": "edit_me"}]}, {"text": final_text()})
+    paused = client.post("/runs/wait", json={"input": "do it", "metadata": stubs()}).json()
+    assert paused["status"] == "interrupted"
+    edited = {k: (f"{v}-edited" if isinstance(v, str) else v) for k, v in args.items()}
+    decision = {"tool_call_id": "edit_me", "approve": True, "edited_args": edited}
+    done = client.post(f"/runs/{paused['run_id']}/resume", json={"decisions": [decision]}).json()
+    assert done["status"] == "success", done["error"]
+    assert done["tool_calls"][0]["args"] == edited
+
+
+def test_a_paused_run_cannot_be_resumed_twice(client, mock_llm):
+    name = gated_tool()
+    if name is None:
+        pytest.skip("no tool needs approval")
+    mock_llm.script({"tool_calls": [{"name": name, "args": sample_args(name), "id": "once"}]}, {"text": final_text()})
+    paused = client.post("/runs/wait", json={"input": "do it", "metadata": stubs()}).json()
+    body = {"decisions": [{"tool_call_id": "once", "approve": False}]}
+    assert client.post(f"/runs/{paused['run_id']}/resume", json=body).status_code == 200
+    assert client.post(f"/runs/{paused['run_id']}/resume", json=body).status_code == 409
+
+
+def test_max_tool_calls(make_client, mock_llm):
+    name = free_tool()
+    if name is None:
+        pytest.skip("every tool needs approval")
+    calls = [{"name": name, "args": sample_args(name)} for _ in range(3)]
+    mock_llm.script({"tool_calls": calls}, {"text": final_text()})
+    with make_client(max_tool_calls=2) as c:
+        result = c.post("/runs/wait", json={"input": "go", "metadata": stubs()}).json()
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "limit_exceeded"
+    assert "max_tool_calls" in result["error"]["message"]
+
+
+def test_max_tokens(make_client, mock_llm):
+    mock_llm.script({"text": final_text()})
+    with make_client(max_tokens=10) as c:  # one mock call uses 15
+        result = c.post("/runs/wait", json={"input": "hi"}).json()
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "limit_exceeded"
+    assert "max_tokens" in result["error"]["message"]
+
+
+def test_run_timeout(make_client, mock_llm):
+    mock_llm.script({"text": final_text(), "delay": 3})
+    started = time.monotonic()
+    with make_client(timeout_s=0.5) as c:
+        result = c.post("/runs/wait", json={"input": "hi"}).json()
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "timeout"
+    assert time.monotonic() - started < 3
+
+
+def test_slow_tool_times_out_and_the_model_sees_it(client, mock_llm, monkeypatch):
+    name = free_tool()
+    if name is None:
+        pytest.skip("every tool needs approval")
+
+    def slow(args):
+        time.sleep(1)
+        return {"late": True}
+
+    patched = dataclasses.replace(TOOLS[name], handler=slow, timeout_s=0.1, idempotent=False)
+    monkeypatch.setitem(registry.TOOLS, name, patched)
+    mock_llm.script({"tool_calls": [{"name": name, "args": sample_args(name), "id": "slow"}]}, {"text": final_text()})
+    result = client.post("/runs/wait", json={"input": "go"}).json()
+    assert result["status"] == "success", result["error"]
+    (call,) = result["tool_calls"]
+    assert call["status"] == "error" and "timed out" in call["error"]
+    tool_messages = [m for m in mock_llm.requests[-1]["messages"] if m["role"] == "tool"]
+    assert tool_messages[-1]["content"].startswith("Error: timed out")
+
+
+def test_tool_errors_and_bad_arguments_reach_the_model(client, mock_llm):
+    name = free_tool()
+    if name is None:
+        pytest.skip("every tool needs approval")
+    failing = {"eval": {"stubs": {name: {"error": "upstream unavailable"}}}}
+    mock_llm.script({"tool_calls": [{"name": name, "args": sample_args(name), "id": "e1"}]}, {"text": final_text()})
+    result = client.post("/runs/wait", json={"input": "go", "metadata": failing}).json()
+    assert result["status"] == "success", result["error"]
+    assert result["tool_calls"][0]["status"] == "error"
+
+    if TOOLS[name].input_schema.get("required"):
+        mock_llm.script({"tool_calls": [{"name": name, "args": {}, "id": "e2"}]}, {"text": final_text()})
+        result = client.post("/runs/wait", json={"input": "go"}).json()
+        assert result["status"] == "success", result["error"]
+        assert "invalid arguments" in result["tool_calls"][0]["error"]
+
+
+@pytest.mark.skipif(spec.STRUCTURED_OUTPUT_SCHEMA is None, reason="no output schema in the spec")
+def test_structured_output_is_validated_and_repaired_once(client, mock_llm):
+    mock_llm.script({"text": "not json"}, {"text": final_text()})
+    repaired = client.post("/runs/wait", json={"input": "answer"}).json()
+    assert repaired["status"] == "success", repaired["error"]
+    assert repaired["output"] == sample_value(spec.STRUCTURED_OUTPUT_SCHEMA)
+
+    mock_llm.script({"text": "not json"}, {"text": "still not json"})
+    failed = client.post("/runs/wait", json={"input": "answer"}).json()
+    assert failed["status"] == "error"
+    assert failed["error"]["code"] == "structured_output_invalid"
