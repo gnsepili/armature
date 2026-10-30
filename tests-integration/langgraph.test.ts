@@ -37,3 +37,41 @@ describe.skipIf(!hasUv())("langgraph project", () => {
     expect(report.passed, `${summary(report)}\n\n${logs}`).toBe(true);
   });
 });
+
+// A second shape: typed output, no approvals and in-memory sessions. Exercises the
+// structured-output repair path and the ungated write tools.
+const typed = {
+  ...spec,
+  name: "lg-typed",
+  capabilities: {
+    session_memory: { enabled: true, backend: "memory" },
+    custom_tools: spec.capabilities.custom_tools,
+    structured_output: {
+      enabled: true,
+      schema: {
+        type: "object",
+        properties: { answer: { type: "string" }, confidence: { type: "number", minimum: 0 } },
+        required: ["answer", "confidence"],
+      },
+    },
+  },
+  policies: { approvals: { write: "allow", destructive: "allow" } },
+};
+
+describe.skipIf(!hasUv())("langgraph project with typed output and no approvals", () => {
+  let dir = "";
+  beforeAll(() => {
+    dir = generateProject("langgraph-typed", typed);
+    install(dir);
+  });
+
+  it("passes its own generated tests", () => {
+    const { ok, output } = pytest(dir);
+    expect(ok, output).toBe(true);
+  });
+
+  it("passes ARC conformance", async () => {
+    const { report, logs } = await conformance(dir, "lg_typed");
+    expect(report.passed, `${summary(report)}\n\n${logs}`).toBe(true);
+  });
+});
