@@ -1,0 +1,20 @@
+{{#if (eq framework "langgraph")}}
+# Debugging the LangGraph project
+
+- The graph is built by `langchain.agents.create_agent` in `agent.py` with two middlewares:
+  `ArmatureMiddleware` (reports model calls, runs tools through the runtime) and, when any
+  tool needs approval, `HumanInTheLoopMiddleware`.
+- `max_steps` is enforced per model call and also sets the graph's recursion limit, with
+  headroom. Either way the run ends with `limit_exceeded`; look for repeated tool calls in
+  the record.
+- An exception inside the model call is reported as `model_error` with the provider's message.
+  Check `{{model.api_key_env}}`, the model id and the base URL in `armature.yaml`.
+- Approvals pause the graph with an interrupt. The checkpointer
+  ({{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}}`AsyncSqliteSaver` at `ARMATURE_SESSION_DB`{{else}}`InMemorySaver`, lost on restart{{/if}})
+  holds the paused state, keyed by the thread id. Resuming sends a `Command` with one decision
+  per pending call; a denied call reaches the model as a denial message.
+- Conversation state per thread lives in the same checkpointer.
+  `GET /threads/{thread_id}` shows what the model will see next turn; `DELETE` clears it.
+- To see raw LangChain messages, set a breakpoint in `LangGraphAgent._invoke` and inspect the
+  graph result; `to_arc_messages` is the conversion to the run record.
+{{/if}}

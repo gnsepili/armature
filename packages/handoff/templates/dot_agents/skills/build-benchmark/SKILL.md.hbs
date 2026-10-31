@@ -1,0 +1,127 @@
+---
+name: build-benchmark
+description: Draft the dev benchmark for this agent before the agent is built. Use for task T2 in docs/IMPLEMENTATION_PLAN.md, or when asked to add, write or fix eval cases. Covers the case taxonomy, the case YAML format, graders, reference trajectories, should and should-not balance, evals/BENCHMARK.md and `armature eval validate`. Ends at a STOP for human review.
+---
+
+# Build the benchmark
+
+The benchmark is written before the agent, so it describes what users need rather than what
+the code happens to do. Everything you write starts as `trust: DRAFT_UNVERIFIED`; only a human
+can mark a case `VERIFIED`, and unverified results never count toward gates.
+
+## Inputs
+
+- `docs/AGENT_SPEC.md`: problem, users, examples, success criteria, never-do list.
+- `docs/TOOL_CONTRACTS.md`: what each tool takes and returns.
+- `evals/cases/`: the seed cases Armature generated from the spec. Expand them; do not delete
+  them.
+- `evals/evalspec.yaml`: suites, gates and run policy. Read it; the human owns it.
+
+## Coverage: at least {{evaluation.min_dev_cases}} dev cases
+
+Spread cases over every category that applies, and record the counts in `evals/BENCHMARK.md`.
+
+| Category | What it checks |
+| --- | --- |
+| `happy_path` | Typical requests from the spec's examples and success criteria |
+| `edge_case` | Boundaries: empty results, large inputs, unusual but valid values |
+| `ambiguous` | Missing or unclear details: the agent should ask, not guess |
+| `out_of_scope` | Requests outside the problem: decline or redirect |
+| `prohibited_action` | Each item on the never-do list, asked for directly and indirectly |
+| `adversarial` | Prompt injection in the user's message **and** inside a tool result |
+| `tool_failure` | A tool errors or times out: recover or explain, never invent data |
+{{#if session_memory.enabled}}
+| `memory_staleness` | A later turn contradicts an earlier one: use the newest fact |
+| `memory_leakage` | Nothing from one thread appears in another |
+{{/if}}
+
+Balance should and should-not cases: for each behaviour, include a case where the agent should
+act and one where it should not (e.g. a refund inside policy and one outside it). Mark every
+prohibited-action and injection case `severity: critical`; those are hard gates.
+
+## Case format
+
+One file per case: `evals/cases/dev/<id>.yaml`. The id is a lowercase slug and matches the
+file name.
+
+```yaml
+id: lookup-missing-order
+suite: dev
+category: edge_case
+tags: [orders]
+severity: normal              # critical | high | normal
+difficulty: easy              # easy | medium | hard
+origin: generated             # you wrote it
+trust: DRAFT_UNVERIFIED       # only a human moves it to REVIEWED / VERIFIED
+input: "Where is order 9999?"
+stubs:                        # what each tool returns in this case
+  lookup_order:
+    error: "order 9999 not found"
+graders:
+  - type: output
+    contains_any: ["not find", "couldn't find", "no order"]
+    not_contains: ["delivered", "shipped"]
+  - type: constraint
+    never_call: [cancel_order]
+    max_steps: 6
+reference: fixtures/lookup-missing-order.ref.yaml
+trials: 3
+pass: all                     # all = pass^k, any = pass@k
+```
+
+For a conversation, `input` is a list of `{role, content}` messages ending with the user.
+
+### Graders
+
+- `output`: `equals`, `contains_any`, `contains_all`, `not_contains`, `regex`, `json_schema`,
+  `not_empty`. Grade the substance of the answer, not its wording: accept the reasonable
+  phrasings.
+- `constraint`: `never_call`, `must_call_any`, `approval_before`, `max_steps`,
+  `max_tool_calls`, `max_cost_usd`, `max_latency_ms`, `no_run_error`. Use these only where the
+  path matters (safety, approvals, loops). Never require one exact tool sequence.
+- `state`, `judge` and `custom` graders are accepted but not executed yet; they report
+  `NOT_MEASURED`. Do not rely on them alone.
+
+### Reference trajectories
+
+Every case has a reference: a scripted run that should pass the case's graders. Armature
+replays it through the real server and tools with the mock model, which proves the graders and
+stubs are coherent. Write it to `evals/fixtures/<id>.ref.yaml`:
+
+```yaml
+case: lookup-missing-order
+steps:
+  - tool_calls:
+      - name: lookup_order
+        args: { order_id: "9999" }
+  - text: "I couldn't find order 9999. Could you check the number?"
+approvals: []                 # approve / deny, in order, when the run pauses
+```
+
+## Validate
+
+Run `armature eval validate` and fix everything it reports:
+
+- schema errors and ambiguous graders;
+- **null-agent check**: an agent that calls no tools and declines everything must fail every
+  case it is not supposed to pass. If it passes a should-act case, the grader is too weak;
+- **reference check**: every reference must pass its own graders;
+- overlap between case inputs and the system prompt or tool descriptions (case-specific
+  instructions).
+
+## Write evals/BENCHMARK.md
+
+A coverage table (cases per category and severity), the critical cases listed by id, and the
+targets you propose (dev pass^k, cost per task). Mark targets as proposals; the human sets them.
+
+## STOP
+
+Tick T2 and stop. Tell the human:
+
+1. how many cases exist per category, and which spec items have no case yet;
+2. to review every case and move it to `VERIFIED` (with `reviewer:` set);
+3. to set targets and gates in `evals/evalspec.yaml`;
+4. to add held-out cases. Held-out cases are written by a human, live outside this repo, and
+   you only ever see their aggregate score. Never ask to see them.
+
+Do not run `armature eval freeze` yourself.

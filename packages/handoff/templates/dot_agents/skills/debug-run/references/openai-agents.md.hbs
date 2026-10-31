@@ -1,0 +1,19 @@
+{{#if (eq framework "openai-agents")}}
+# Debugging the OpenAI Agents SDK project
+
+- The agent is an `agents.Agent` built in `agent.py` and driven with `Runner.run_streamed`.
+  `ArmatureHooks` (a `RunHooks` subclass) reports each model call to the runtime.
+- `max_steps` maps to the runner's `max_turns`. `MaxTurnsExceeded` becomes `limit_exceeded`;
+  look for repeated tool calls in the record.
+- The SDK wraps exceptions raised inside tools and hooks. The runtime unwraps its own aborts,
+  so the record shows the original code; anything raised during a model call is
+  `model_error`. Check `{{model.api_key_env}}`, the model id and the base URL in
+  `armature.yaml`.
+- Tools that need approval stop the run with interruptions. The paused `RunState` is held in
+  memory by the server process; restarting the server loses it. On resume each item is
+  approved or rejected; a rejected call reaches the model as a denial message.
+- Conversation state per thread is an `agents.SQLiteSession`{{#if (and session_memory.enabled (eq session_memory.backend "sqlite"))}} stored at `ARMATURE_SESSION_DB`{{else}} in memory{{/if}}.
+  `GET /threads/{thread_id}` shows what the model will see next turn; `DELETE` clears it.
+- To see raw SDK items, set a breakpoint in `AgentsSdkAgent._drive` and inspect `result`;
+  `to_arc_messages` is the conversion to the run record.
+{{/if}}

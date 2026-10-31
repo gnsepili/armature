@@ -1,0 +1,68 @@
+---
+name: build-agent
+description: End-to-end workflow for turning this Armature project into a working agent. Use when starting work on the project, when asked to build or finish the agent, or when unsure what to do next. Follows docs/IMPLEMENTATION_PLAN.md task by task (design, benchmark, STOP for human review, freeze, build, baseline, optimize, held-out check, report).
+---
+
+# Build the agent
+
+The plan lives in `docs/IMPLEMENTATION_PLAN.md`. Find the first unchecked task, do only that
+task, tick its box, and say what you did. At a STOP, stop: summarise what the human must
+review and wait for them.
+
+## Before any task
+
+1. Read `AGENTS.md` (rules, layout, commands) and `docs/AGENT_SPEC.md` (what to build).
+2. Run `uv run pytest`. It must pass before you change anything; if it does not, report it.
+3. Run `armature plan` to see open tasks and whether `armature.yaml` has unapplied changes.
+
+## T1 Design
+
+- Fill the Purpose, Returns and Errors lines for every tool in `docs/TOOL_CONTRACTS.md`. If a
+  tool's side-effect class or arguments look wrong, change `armature.yaml` (not the generated
+  code) and run `armature generate`.
+- Fill the Design section of `docs/ARCHITECTURE.md`: prompt outline, guardrails for every
+  prohibited action in the spec, and the context policy.
+- Do not write tool code yet.
+
+## T2 Benchmark, then STOP
+
+Use the `build-benchmark` skill. The benchmark defines "good" before any code exists, so the
+agent cannot be built to the test. End the task with `armature eval validate` clean, then stop
+and ask the human to verify the cases, set targets and gates, and add held-out cases.
+
+## T3 Freeze
+
+Only after the human approves: `armature eval freeze`. From here on, cases and graders are
+read-only for you.
+
+## T4 Build
+
+- Implement each tool with the `add-tool` skill, one at a time, each with a unit test in
+  `tests/test_tools.py` (or a new test file).
+- Write `src/{{package}}/prompts/system.md` from the Design section. Keep instructions general;
+  never mention a specific eval case.
+- Update `docs/BUILD_STATUS.md` as each piece becomes real.
+- Smoke-run `armature eval run --sample 10`.
+
+## T5 Baseline
+
+Run the full dev suite live (needs `{{model.api_key_env}}`). Log it as run #1 in
+`evals/EXPERIMENTS.md` with the run id, scores, cost and latency.
+
+## T6 Optimize
+
+Use the `optimize-agent` skill until the targets in `evals/BENCHMARK.md` are met.
+
+## T7 Verify
+
+`armature eval run --suite heldout`. If held-out trails dev by more than the gap in the plan,
+the agent is overfitting the dev cases: go back to T6 and make more general fixes.
+
+## T8 Report
+
+Write `evals/EVAL_REPORT.md`: dev vs held-out, per-dimension and per-category results, cost
+and latency, remaining failures with run ids, and suggested new cases.
+
+## When something breaks
+
+Use the `debug-run` skill. Never weaken a test, a limit or a grader to get past a failure.

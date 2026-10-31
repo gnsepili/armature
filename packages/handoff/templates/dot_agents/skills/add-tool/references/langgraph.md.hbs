@@ -1,0 +1,30 @@
+{{#if (eq framework "langgraph")}}
+# Tools in the LangGraph project
+
+How a tool declared in `armature.yaml` reaches the model, so you know which file to change.
+
+- `runtime/registry.py` (managed) lists every tool: name, description, side effect, timeout,
+  the argument model from `runtime/tool_args.py`, and the `run` function from `tools/<name>.py`.
+- `agent.py` (managed) turns each registry entry into a `langchain_core.tools.StructuredTool`
+  with the tool's JSON schema, and passes them to `langchain.agents.create_agent`.
+- `ArmatureMiddleware.awrap_tool_call` executes every call through `runtime/tools.py`
+  `invoke()`. That is where arguments are validated, limits are counted, eval stubs apply,
+  timeouts are enforced and the call is recorded. The function given to `StructuredTool` is
+  never called directly.
+- Tools that need approval are listed in `HumanInTheLoopMiddleware(interrupt_on=...)`. A paused
+  run is stored by the checkpointer and resumed with a LangGraph `Command`.
+
+So:
+
+- Change what the model sees (name, description, arguments, approval) in `armature.yaml`, then
+  run `armature generate`.
+- Change what the tool does in `tools/<name>.py`. You do not need LangChain imports there:
+  `run(args)` is plain async Python.
+- Do not add `@tool` decorators or register tools in `agent.py`; the registry is generated.
+- Idempotent tools (`none` and `read` by default) are retried once after an error; write and
+  destructive tools are not.
+
+The LangChain docs MCP server (`langchain-docs` in `.mcp.json` or `.codex/config.toml`, when
+enabled) answers questions about LangChain and LangGraph APIs. Check the version pinned in
+`pyproject.toml` before relying on an example.
+{{/if}}

@@ -1,0 +1,65 @@
+---
+name: debug-run
+description: Find out why a run of this agent failed, stalled or misbehaved. Use when a run ends in error, an eval case fails unexpectedly, the agent loops or stops early, a tool errors, an approval never resumes, or `uv run pytest` fails. Covers reproducing offline, reading the run record and spans, ARC error codes and the framework-specific places to look.
+---
+
+# Debug a run
+
+Framework details are in `references/{{framework}}.md`.
+
+## 1. Reproduce it
+
+- Offline first: `ARMATURE_MODEL_MODE=mock uv run python -m {{package}} chat` uses the mock
+  model, so a failure there is in the code, not the model.
+- Live: `uv run python -m {{package}} serve`, then send the same input. Live needs
+  `{{model.api_key_env}}`.
+- For a failing eval case, rerun just that case with `armature eval run` and its id, and keep
+  the run id.
+- `armature dev` shows each run's events, tool calls and approvals in the playground.
+
+## 2. Read the run record
+
+`GET /runs/{run_id}` returns the record. Look at, in order:
+
+1. `status`: `completed`, `interrupted` (waiting for approval) or `error`.
+2. `error.code`, then `error.message`:
+
+| Code | Usually means |
+| --- | --- |
+| `limit_exceeded` | Hit `max_steps`, `max_tool_calls`, `max_tokens` or `max_cost_usd`; look for a loop in `tool_calls` |
+| `timeout` | The whole run passed `timeout_s` |
+| `model_error` | The provider call failed: key, model id, base URL, rate limit |
+| `tool_error` | A tool failed in a way the run could not continue from |
+| `structured_output_invalid` | The final answer did not match the output schema, even after one repair |
+| `invalid_request` | The request to the server was malformed |
+| `internal` | A bug in the generated runtime or your code; read the server log |
+
+3. `tool_calls`: each call's arguments, `status` (`completed`, `error`, `denied`), `error`,
+   `result`, and `stubbed` (true when an eval stub answered instead of your code).
+4. `spans`: `invoke_agent` at the root, `chat` per model call, `execute_tool` per tool call,
+   with durations. A slow run shows which step took the time.
+5. `messages` and `output`: what the model actually saw and said.
+
+## 3. Common causes
+
+- **A tool error in the record** is sent back to the model as text, not raised. Fix the tool
+  or its error message; the model needs an actionable message to recover.
+- **`is not implemented yet`**: the tool still raises `NotImplementedError`. Implement it with
+  the `add-tool` skill.
+- **`invalid arguments`**: the model sent arguments that fail validation. Improve the argument
+  names and descriptions in `armature.yaml`.
+- **Tool timed out**: raise `timeout_s` for that tool only if the work is genuinely slow;
+  otherwise make the call faster.
+- **Stuck in `interrupted`**: a write or destructive tool is waiting for approval. Resume with
+  `POST /runs/{run_id}/resume` and a decision for each pending call.
+- **Different results offline and live**: the mock model follows scripts; only live runs say
+  anything about quality.
+
+## 4. Fix at the right layer
+
+- Generated files (`agent.py`, `runtime/`, `settings.py`) are managed: change `armature.yaml`
+  and run `armature generate`. If the generated code itself is wrong, report it instead of
+  patching around it.
+- Your code is `tools/`, `prompts/` and the tests.
+- Add a test that reproduces the bug before fixing it, and keep it.
+- Never raise a limit, loosen a grader or delete a test to make a failure disappear.

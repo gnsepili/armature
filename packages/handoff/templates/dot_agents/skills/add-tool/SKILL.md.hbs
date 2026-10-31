@@ -1,0 +1,77 @@
+---
+name: add-tool
+description: Add, implement or change a tool in this Armature agent project. Use when a tool is a stub, when the agent needs a new capability, or when a tool's arguments, description or side-effect class need to change. Covers the spec entry, naming, descriptions the model understands, side-effect classes, error handling, result size and the unit test.
+---
+
+# Add or implement a tool
+
+A tool has two halves. `armature.yaml` declares it (name, description, side effect, args) and
+Armature generates the argument model, registry entry and framework wiring. You write
+`src/{{package}}/tools/<name>.py`, which Armature creates once and never overwrites.
+Framework details are in `references/{{framework}}.md`.
+
+## 1. Declare it in armature.yaml
+
+```yaml
+capabilities:
+  custom_tools:
+    - name: lookup_order            # verb_noun, snake_case, unique
+      description: Look up an order by id and return its status, items and total.
+      side_effect: read             # none | read | write | destructive
+      timeout_s: 30
+      auth_env: SHOP_API_TOKEN      # only if it calls an authenticated service
+      args:
+        - name: order_id
+          type: string              # string | integer | number | boolean
+          description: The order id, e.g. "1234".
+```
+
+Then run `armature generate`. It creates `tools/<name>.py`, updates `runtime/tool_args.py`
+and adds a row to the tool tables. Add the tool's section to `docs/TOOL_CONTRACTS.md` by hand.
+
+## 2. Name and describe it for the model
+
+- The description says what the tool does, when to use it and what it returns, in one or two
+  sentences. Mention when *not* to use it if a neighbouring tool is similar.
+- Argument names are unambiguous (`order_id`, not `id`) and every argument has a description
+  with an example value.
+- Prefer one tool that does a job completely over several that must be chained.
+
+## 3. Pick the side-effect class honestly
+
+| Class | Use when the tool | Approval by default |
+| --- | --- | --- |
+| `none` | computes something, touches nothing | no |
+| `read` | reads from a system | no |
+| `write` | creates or changes something | yes |
+| `destructive` | deletes, sends, pays, or cannot be undone | yes |
+
+In eval mode write and destructive tools are always stubbed, whatever the approval policy.
+
+## 4. Implement run()
+
+```python
+async def run(args: LookupOrderArgs) -> Any:
+    ...
+```
+
+- `args` is already validated. Return JSON-serialisable data; it becomes the tool result.
+- Keep results small: return the fields the model needs, not whole API payloads. Large
+  results cost tokens and bury the answer.
+- Raise an exception with a short, actionable message when the call fails
+  (`raise ValueError("order 1234 not found; check the id")`). The runtime turns it into a tool
+  error the model can read and recover from; it does not crash the run.
+- Read credentials from the environment variable in `auth_env`. Never hard-code secrets.
+- Long calls are cut off at `timeout_s`. Use async HTTP clients so a timeout really stops the
+  work.
+
+## 5. Test it
+
+Add a test to `tests/test_tools.py` that calls the handler directly with real arguments and
+asserts on the result, plus one for the failure path. Mock the external service; never call a
+real write or destructive endpoint from tests. Then run `uv run pytest`.
+
+## 6. Record it
+
+Update the tool's row in `docs/BUILD_STATUS.md`: `IMPLEMENTED` once a test covers the real
+code path, `REQUIRES_AUTH` if it cannot be tested without a credential.

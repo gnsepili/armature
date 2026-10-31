@@ -79,7 +79,8 @@ export interface ProjectPlan {
   interfaces: string[];
   assistant: { targets: string[]; docs_mcp: boolean };
   telemetry: { capture_content: boolean };
-  evaluation: { spec: string };
+  /** min_dev_cases and max_dev_heldout_gap are the defaults written into evalspec.yaml. */
+  evaluation: { spec: string; min_dev_cases: number; max_dev_heldout_gap: number };
   dependencies: Dependency[];
   dev_dependencies: Dependency[];
   build_requires: Dependency[];
@@ -222,7 +223,7 @@ export function planProject(spec: AgentSpec): ProjectPlan {
     interfaces: [...spec.interfaces],
     assistant: { targets: [...spec.assistant.targets], docs_mcp: spec.assistant.docs_mcp },
     telemetry: { capture_content: spec.telemetry.capture_content },
-    evaluation: { spec: spec.evaluation.spec },
+    evaluation: { spec: spec.evaluation.spec, min_dev_cases: 20, max_dev_heldout_gap: 10 },
     dependencies: planDependencies(spec),
     dev_dependencies: deps(versionsCatalog.dev),
     build_requires: deps(versionsCatalog.build),

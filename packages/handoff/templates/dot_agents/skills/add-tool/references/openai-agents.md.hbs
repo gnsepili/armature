@@ -1,0 +1,30 @@
+{{#if (eq framework "openai-agents")}}
+# Tools in the OpenAI Agents SDK project
+
+How a tool declared in `armature.yaml` reaches the model, so you know which file to change.
+
+- `runtime/registry.py` (managed) lists every tool: name, description, side effect, timeout,
+  the argument model from `runtime/tool_args.py`, and the `run` function from `tools/<name>.py`.
+- `agent.py` (managed) builds an `agents.FunctionTool` for each entry with the tool's JSON
+  schema (`params_json_schema`) and `needs_approval` set from the approval policy.
+- Each tool's `on_invoke_tool` calls `runtime/tools.py` `invoke()`. That is where arguments
+  are validated, limits are counted, eval stubs apply, timeouts are enforced and the call is
+  recorded.
+- A run that needs approval stops with interruptions; the runtime keeps its `RunState` and
+  approves or rejects each item when the decisions arrive.
+
+So:
+
+- Change what the model sees (name, description, arguments, approval) in `armature.yaml`, then
+  run `armature generate`.
+- Change what the tool does in `tools/<name>.py`. You do not need SDK imports there:
+  `run(args)` is plain async Python.
+- Do not add `@function_tool` decorators or register tools in `agent.py`; the registry is
+  generated.
+- Idempotent tools (`none` and `read` by default) are retried once after an error; write and
+  destructive tools are not.
+
+The OpenAI docs MCP server (`openai-docs` in `.mcp.json` or `.codex/config.toml`, when
+enabled) answers questions about the Agents SDK. Check the version pinned in `pyproject.toml`
+before relying on an example.
+{{/if}}

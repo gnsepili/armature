@@ -1,0 +1,72 @@
+---
+name: optimize-agent
+description: Improve the agent's benchmark scores honestly, one logged experiment at a time. Use for task T6 in docs/IMPLEMENTATION_PLAN.md, or when eval results are below target, a gate fails, or pass^k is low. Covers reading failures, the failure-to-fix playbook, noise, `armature eval compare` and evals/EXPERIMENTS.md.
+---
+
+# Optimize the agent
+
+You change the agent, never the benchmark. Frozen cases, graders, references and
+`evals/evalspec.yaml` are read-only; if one looks wrong, say so and let the human decide.
+
+## The loop
+
+1. **Diagnose.** Open the latest report (`armature eval report`). For each failing case read
+   the run record: the tool calls, their arguments and results, and the final output. Group
+   failures by pattern, not by case.
+2. **Hypothesise.** Pick the largest group. Write one sentence: "the agent does X because Y".
+3. **Change one thing.** Apply a single fix from the playbook below. One change per
+   experiment, or you cannot tell what helped.
+4. **Rerun.** `armature eval run --sample 10` while iterating, then the full dev suite before
+   deciding.
+5. **Compare.** `armature eval compare <before> <after>`. Each case is labelled improvement,
+   regression or within noise.
+6. **Decide.** Keep the change only if it is better beyond noise, introduces no regressions
+   and fails no gate. Otherwise revert it.
+7. **Log.** Append an entry to `evals/EXPERIMENTS.md` whatever the decision.
+
+## Failure → fix playbook
+
+| Pattern in the runs | Try first |
+| --- | --- |
+| Wrong tool or no tool | Tool names and descriptions; merge overlapping tools |
+| Right tool, wrong arguments | Clearer argument names and descriptions, stricter types, actionable error messages |
+| Redundant calls or loops | Consolidate tools, add filters, return smaller results |
+| Ignores tool results or invents facts | Instruct the agent to answer only from tool results and say when it cannot |
+| Does a prohibited action | A rule in the system prompt, a check in the tool, or an approval requirement |
+| Correct but slow or expensive | Shorter prompt, smaller results, fewer steps |
+| Inconsistent across trials (low pass^k) | Clearer instructions, lower temperature, move deterministic steps into code |
+
+Tool names, descriptions, arguments and approvals change in `armature.yaml` (then
+`armature generate`). Prompts change in `src/{{package}}/prompts/system.md`. Behaviour
+changes in `src/{{package}}/tools/`.
+
+## Noise
+
+Models are not deterministic. A case that passes 2 of 3 trials is flaky, not fixed. Judge on
+pass^k (every trial passes) and on `eval compare`, not on a single run. Comparing a run with
+itself (A/A) must come out within noise; if it does not, add trials before trusting any
+result.
+
+## Rules that keep the score honest
+
+- Never edit frozen cases, graders, references or the eval spec to make a case pass.
+- No case-specific instructions: never mention a case's wording, ids or expected answers in
+  prompts or tool descriptions. `armature eval validate` flags overlap.
+- Never point evals at real write or destructive actions.
+- Do not chase one case at the expense of others; a fix that only helps one case is usually
+  overfitting.
+- When dev targets are met, the held-out run (T7) is the real test. If held-out trails dev by
+  more than {{evaluation.max_dev_heldout_gap}} points, make the fixes more general.
+
+## EXPERIMENTS.md entry
+
+```markdown
+## #4 Clarify lookup_order's id argument
+
+- Hypothesis: the agent passes customer names as order ids because `id` is ambiguous.
+- Change: renamed the argument to `order_id` and described its format in armature.yaml.
+- Before: run 20261102-1, dev pass^3 0.62, $0.011/task
+- After: run 20261102-2, dev pass^3 0.71, $0.011/task
+- Compare: 3 improvements, 0 regressions, 21 within noise
+- Decision: kept
+```
