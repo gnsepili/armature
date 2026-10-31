@@ -1,0 +1,51 @@
+# Agent spec — {{name}}
+
+Owned by the human. Written once from the `armature init` answers; coding agents read it and do
+not rewrite it. If something here is wrong or missing, ask.
+
+## What it does
+
+{{#if intent.problem}}{{intent.problem}}{{else}}{{#if description}}{{description}}{{else}}TODO: describe the problem this agent solves.{{/if}}{{/if}}
+
+## Who uses it
+
+{{#if intent.target_user}}{{intent.target_user}}{{else}}TODO: describe the people or systems that call this agent.{{/if}}
+
+## Example requests
+
+{{#if intent.examples.length}}
+| Request | Desired outcome |
+| --- | --- |
+{{#each intent.examples}}
+| {{request}} | {{desired_outcome}} |
+{{/each}}
+{{else}}
+TODO: add 2 to 5 real requests and what a good answer does for each.
+{{/if}}
+
+## Success criteria
+
+{{#if intent.success_criteria.length}}
+{{#each intent.success_criteria}}
+- {{this}}
+{{/each}}
+{{else}}
+- TODO: how will you know the agent is good enough to ship?
+{{/if}}
+
+## Never
+
+{{#if intent.prohibited_actions.length}}
+{{#each intent.prohibited_actions}}
+- {{this}}
+{{/each}}
+{{else}}
+- TODO: at least one thing the agent must refuse or never do.
+{{/if}}
+
+## Permission to change things
+
+{{#if intent.write_scope}}{{intent.write_scope}}{{else}}TODO: what may the agent change outside itself, and with whose approval?{{/if}}
+
+Approval policy from `armature.yaml`: write tools `{{approvals.write}}`, destructive tools
+`{{approvals.destructive}}`. `require` pauses the run until a person approves, edits or denies the call.

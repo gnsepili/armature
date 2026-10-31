@@ -1,0 +1,34 @@
+# Tool contracts — {{name}}
+
+One section per tool. Armature fills in what `armature.yaml` says; the coding agent completes
+purpose, returns and errors in task T1. When a tool is added to the spec later, add its
+section here too (the `add-tool` skill covers it).
+{{#each tools}}
+
+## `{{name}}`
+
+{{description}}
+
+| | |
+| --- | --- |
+| Side effect | `{{side_effect}}` |
+| Needs approval | {{#if requires_approval}}yes{{else}}no{{/if}} |
+| Idempotent | {{#if idempotent}}yes{{else}}no{{/if}} |
+| Timeout | {{timeout_s}} s |
+| Auth | {{#if auth_env}}`{{auth_env}}` environment variable{{else}}none{{/if}} |
+| Implementation | `src/{{../package}}/tools/{{name}}.py` ({{mode}}) |
+
+Input schema:
+
+```json
+{{json input_schema 2}}
+```
+
+- Purpose: TODO
+- Returns: TODO
+- Errors: TODO (what the model sees, and what it should do next)
+{{/each}}
+{{#unless has_tools}}
+
+This agent has no tools yet. Add them under `capabilities.custom_tools` in `armature.yaml`.
+{{/unless}}

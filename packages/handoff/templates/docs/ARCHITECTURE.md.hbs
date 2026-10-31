@@ -1,0 +1,47 @@
+# Architecture — {{name}}
+
+## Stack
+
+| Layer | Choice |
+| --- | --- |
+| Language | Python {{python_version}} (uv) |
+| Agent framework | {{framework}}, pattern `{{pattern}}` |
+| Model | `{{model.id}}` via {{model.provider}}{{#if model.base_url}} at {{model.base_url}}{{/if}} |
+| Session memory | {{#if session_memory.enabled}}{{session_memory.backend}}{{else}}off{{/if}} |
+| Structured output | {{#if structured_output.enabled}}JSON schema in `settings.py`, validated and repaired once{{else}}plain text{{/if}} |
+| HTTP | FastAPI server implementing ARC v1 (`runtime/server.py`) |
+
+## Data flow
+
+1. A client calls `POST /runs/wait` or `POST /runs/stream` (or `python -m {{package}} chat`).
+2. `runtime/runner.py` starts a run with the limits from `settings.py` and hands the messages
+   to the {{framework}} agent in `agent.py`.
+3. The agent calls the model. Each tool call goes through `runtime/tools.py`, which validates
+   the arguments against the generated model in `runtime/tool_args.py`, applies the approval
+   policy, enforces the tool timeout and calls `tools/<name>.py`.
+4. A tool that needs approval pauses the run (`status: interrupted`) until
+   `POST /runs/{id}/resume` approves, edits or denies it.
+5. Errors and invalid arguments go back to the model as tool results; limit breaches and
+   timeouts end the run with `limit_exceeded` or `timeout`.
+6. The final answer{{#if structured_output.enabled}} is validated against the output schema and{{/if}} is returned with the tool calls,
+   usage and spans in the run record (`GET /runs/{id}`).
+
+Run limits: {{limits.max_steps}} model calls, {{limits.max_tool_calls}} tool calls, {{limits.max_tokens}} tokens, ${{limits.max_cost_usd}}, {{limits.timeout_s}} s.
+
+## Design
+
+Completed by the coding agent in task T1, then reviewed by the human.
+
+### Prompt outline
+
+TODO: the sections of `prompts/system.md` and what each one is for.
+
+### Guardrails
+
+TODO: what the agent refuses, how it handles prohibited actions from `docs/AGENT_SPEC.md`, and
+which checks run on input and output.
+
+### Context policy
+
+TODO: what goes into the model context on each turn (history, tool results, retrieved data),
+what is trimmed, and how large tool results are compacted.

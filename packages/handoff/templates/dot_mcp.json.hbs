@@ -1,0 +1,18 @@
+{{#if (and assistant.docs_mcp (includes assistant.targets "claude"))}}
+{
+  "mcpServers": {
+{{#if (eq framework "langgraph")}}
+    "langchain-docs": {
+      "type": "http",
+      "url": "https://docs.langchain.com/mcp"
+    }
+{{/if}}
+{{#if (eq framework "openai-agents")}}
+    "openai-docs": {
+      "type": "http",
+      "url": "https://developers.openai.com/mcp"
+    }
+{{/if}}
+  }
+}
+{{/if}}

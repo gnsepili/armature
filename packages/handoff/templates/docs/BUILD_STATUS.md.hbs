@@ -1,0 +1,34 @@
+# Build status — {{name}}
+
+Every capability carries one label. Update a row when its state changes, and only mark it
+`IMPLEMENTED` when a test exercises the real behaviour.
+
+| Label | Meaning |
+| --- | --- |
+| `IMPLEMENTED` | Real behaviour, covered by a test |
+| `MOCK` | Runs against a fake (the mock model, recorded fixtures); not evidence of quality |
+| `STUB` | Placeholder that returns example data |
+| `REQUIRES_AUTH` | Implemented, but untested without a credential |
+| `UNSUPPORTED` | Not available in this project |
+
+| Capability | Status | Notes |
+| --- | --- | --- |
+| Agent loop ({{framework}}) | IMPLEMENTED | Generated; covered by tests/test_arc.py |
+| ARC HTTP server | IMPLEMENTED | Generated; covered by tests/test_arc.py |
+| Run limits and timeouts | IMPLEMENTED | Covered by tests/test_guardrails.py |
+| Model `{{model.id}}` | REQUIRES_AUTH | Needs `{{model.api_key_env}}`; tests use the mock model |
+| Offline model | MOCK | `ARMATURE_MODEL_MODE=mock`; scripted answers only |
+{{#if has_approval_tools}}
+| Approvals | IMPLEMENTED | Write: `{{approvals.write}}`, destructive: `{{approvals.destructive}}` |
+{{/if}}
+{{#if session_memory.enabled}}
+| Session memory ({{session_memory.backend}}) | IMPLEMENTED | Covered by tests/test_arc.py |
+{{else}}
+| Session memory | UNSUPPORTED | Off in armature.yaml |
+{{/if}}
+{{#if structured_output.enabled}}
+| Structured output | IMPLEMENTED | Validated and repaired once; tests/test_guardrails.py |
+{{/if}}
+{{#each tools}}
+| Tool `{{name}}` | STUB | {{#if (eq mode "stub")}}Returns example data{{else}}Not written yet; raises NotImplementedError{{/if}}{{#if auth_env}}. The real call needs `{{auth_env}}` (then REQUIRES_AUTH until tested){{/if}} |
+{{/each}}

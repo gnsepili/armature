@@ -1,0 +1,13 @@
+{{#if (includes assistant.targets "claude")}}
+@AGENTS.md
+
+## Claude Code
+
+- Skills are copied into `.claude/skills/`; `.agents/skills/` holds the originals. After
+  editing a skill in `.agents/skills/`, run `armature sync` to refresh the copy.
+{{#if assistant.docs_mcp}}
+- `.mcp.json` adds a documentation MCP server for {{framework}}. Approve it when Claude Code
+  asks, and use it before writing framework code.
+{{/if}}
+- Start with `/build-agent`, which follows `docs/IMPLEMENTATION_PLAN.md`.
+{{/if}}

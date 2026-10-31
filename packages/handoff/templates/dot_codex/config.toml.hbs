@@ -1,0 +1,12 @@
+{{#if (and assistant.docs_mcp (includes assistant.targets "codex"))}}
+# Build-time documentation for Codex. Codex reads this file only in trusted projects.
+# This is not the agent's runtime MCP configuration.
+{{#if (eq framework "langgraph")}}
+[mcp_servers.langchain-docs]
+url = "https://docs.langchain.com/mcp"
+{{/if}}
+{{#if (eq framework "openai-agents")}}
+[mcp_servers.openai-docs]
+url = "https://developers.openai.com/mcp"
+{{/if}}
+{{/if}}

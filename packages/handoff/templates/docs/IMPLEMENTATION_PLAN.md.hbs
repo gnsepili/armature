@@ -1,0 +1,31 @@
+# IMPLEMENTATION PLAN — work top to bottom; never skip a STOP.
+
+Tick each box when its task is done. The `build-agent` skill explains every step.
+
+- [ ] T1 Design: read docs/AGENT_SPEC.md. Complete docs/TOOL_CONTRACTS.md (purpose, input schema,
+      side-effect class, auth) and the Design section of docs/ARCHITECTURE.md (prompt outline,
+      guardrails, context policy).
+- [ ] T2 Benchmark: with the build-benchmark skill, expand the seeds to ≥ {{evaluation.min_dev_cases}} dev cases
+      across every taxonomy category, each with a reference trajectory; write evals/BENCHMARK.md
+      (coverage table, proposed targets). Run `armature eval validate` until clean.
+      STOP: the human verifies cases (→ VERIFIED), sets targets and gates, and adds held-out cases.
+- [ ] T3 Freeze: `armature eval freeze`.
+- [ ] T4 Build: tools (unit tests, side-effect classes), prompts/system.md, policies. Update
+      docs/BUILD_STATUS.md as each piece becomes real. Smoke-run `armature eval run --sample 10`.
+{{#each tools}}
+      - [ ] implement `{{name}}` in src/{{../package}}/tools/{{name}}.py
+{{/each}}
+- [ ] T5 Baseline: first full live run on the dev suite; log it as run #1 in evals/EXPERIMENTS.md.
+- [ ] T6 Optimize: with the optimize-agent skill — one change per experiment, logged, kept only if
+      better beyond noise with no regressions and no gate failures — until targets are met.
+- [ ] T7 Verify: `armature eval run --suite heldout`. If held-out trails dev by more than
+      {{evaluation.max_dev_heldout_gap}} points, treat it as overfitting and return to T6 with more general fixes.
+- [ ] T8 Report: evals/EVAL_REPORT.md — dev vs held-out, per-dimension and per-category results,
+      cost and latency, remaining failures with trace links, suggested new cases.
+
+Rules: never edit frozen cases or graders to make them pass; no case-specific instructions in prompts
+or tool descriptions; never run real write/destructive actions in evals; fix tools, prompts, or context.
+
+Definition of done: `uv run pytest` green (incl. ARC conformance) · dev and held-out targets met ·
+no gate failures · benchmark unchanged since freeze (or re-approved) · BUILD_STATUS accurate ·
+no secrets committed.

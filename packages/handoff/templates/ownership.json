@@ -1,0 +1,9 @@
+{
+  "generated-once": [
+    "docs/AGENT_SPEC.md",
+    "docs/ARCHITECTURE.md",
+    "docs/TOOL_CONTRACTS.md",
+    "docs/IMPLEMENTATION_PLAN.md",
+    "docs/BUILD_STATUS.md"
+  ]
+}
