@@ -53,6 +53,15 @@ files but never touches files you own (tools, prompts). Managed files that are n
 produced are removed if unedited. `--dry-run` shows the changes, `--verbose` lists unchanged
 files, `--spec <file>` reads another spec.
 
+## `armature sync [dir]`
+
+Refreshes only the coding-agent handoff from `armature.yaml`: `AGENTS.md`, `CLAUDE.md`,
+`docs/`, `.agents/skills/`, the `.claude/skills/` copies and the docs MCP config (`.mcp.json`,
+`.codex/config.toml`). Runtime code, tools, tests and evals are untouched. Run it after editing a
+skill in `.agents/skills/` so Claude Code's copy matches, or after changing
+`assistant.targets`. Same flags and edit rules as `generate`; needs an existing
+`armature.lock`. See [ADR 0004](adr/0004-handoff-kit-and-sync.md).
+
 ## `armature plan [dir]`
 
 Explains what `generate` would build: stack, model and price, approvals, limits, tools, the

@@ -9,6 +9,7 @@ import { devCommand } from "./commands/dev.ts";
 import { generateCommand } from "./commands/generate.ts";
 import { initCommand } from "./commands/init.ts";
 import { planCommand } from "./commands/plan.ts";
+import { syncCommand } from "./commands/sync.ts";
 import { type Io, printFailure, processIo, toFailure } from "./io.ts";
 
 const collect = (value: string, previous: string[] = []) => [...previous, value];
@@ -61,6 +62,18 @@ function program(io: Io, setCode: (code: number) => void): Command {
     .option("--verbose", "list unchanged files too")
     .option("--json", "machine-readable output")
     .action(action((dir: string, opts) => generateCommand(io, dir, opts)));
+
+  root
+    .command("sync")
+    .description("Refresh AGENTS.md, CLAUDE.md, docs/ and skills only; runtime code is untouched")
+    .argument("[dir]", "project directory", ".")
+    .option("--spec <file>", "spec path (default: <dir>/armature.yaml)")
+    .option("--force", "overwrite handoff files you edited")
+    .option("--dry-run", "show what would change")
+    .option("--experimental", "allow models and endpoints outside the verified catalog")
+    .option("--verbose", "list unchanged files too")
+    .option("--json", "machine-readable output")
+    .action(action((dir: string, opts) => syncCommand(io, dir, opts)));
 
   root
     .command("plan")
