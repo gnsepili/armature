@@ -1,5 +1,6 @@
 // Bundles the CLI into dist/armature.js and copies the assets it reads at runtime:
-// project templates (dist/templates) and the playground UI (dist/playground).
+// project templates (dist/templates), the coding-agent handoff kit (dist/handoff) and the
+// playground UI (dist/playground).
 // Internal @armature/* packages are bundled; npm dependencies stay external.
 import { chmodSync, cpSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -24,5 +25,6 @@ await build({
 });
 chmodSync(join(dist, "armature.js"), 0o755);
 cpSync(join(root, "../adapters/templates"), join(dist, "templates"), { recursive: true });
+cpSync(join(root, "../handoff/templates"), join(dist, "handoff"), { recursive: true });
 cpSync(join(root, "../playground/public"), join(dist, "playground"), { recursive: true });
 console.log(`built ${pkg.name}@${pkg.version} -> dist/armature.js`);

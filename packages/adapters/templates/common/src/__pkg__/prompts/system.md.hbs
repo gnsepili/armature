@@ -1,8 +1,10 @@
 You are {{name}}{{#if description}}: {{description}}{{/if}}
+{{#if intent.problem}}
 
 ## Your job
 
 {{intent.problem}}
+{{/if}}
 {{#if intent.target_user}}
 
 You work for {{intent.target_user}}.

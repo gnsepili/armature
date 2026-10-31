@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Bumped whenever a template change alters generated output. Recorded in armature.lock. */
-export const TEMPLATE_VERSION = "1";
+export const TEMPLATE_VERSION = "2";
 
 /** Source checkout keeps templates next to src/; the bundled CLI copies them next to dist/index.js. */
 function templatesRoot(): string {

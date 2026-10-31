@@ -226,6 +226,9 @@ importers:
       '@armature/core':
         specifier: workspace:*
         version: link:../core
+      '@armature/handoff':
+        specifier: workspace:*
+        version: link:../handoff
       '@armature/mock-llm':
         specifier: workspace:*
         version: link:../mock-llm
@@ -244,6 +247,9 @@ importers:
       '@armature/adapters':
         specifier: workspace:*
         version: link:../adapters
+      '@armature/handoff':
+        specifier: workspace:*
+        version: link:../handoff
       '@armature/schema':
         specifier: workspace:*
         version: link:../schema

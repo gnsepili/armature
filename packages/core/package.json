@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@armature/adapters": "workspace:*",
+    "@armature/handoff": "workspace:*",
     "@armature/schema": "workspace:*",
     "handlebars": "4.7.10",
     "yaml": "2.9.1",
