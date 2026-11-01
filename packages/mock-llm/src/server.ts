@@ -68,7 +68,10 @@ export function createMockLlm(options: MockLlmOptions = {}): MockLlm {
     const firstUser = req.messages.find((m) => m.role === "user");
     const script = firstUser ? scripts.get(textOf(firstUser).trim()) : undefined;
     if (script) {
-      const step = req.messages.filter((m) => m.role === "assistant").length;
+      // Steps count from the latest user turn, so a conversation given as input (earlier
+      // user and assistant turns) starts the script at its first step.
+      const lastUser = req.messages.findLastIndex((m) => m.role === "user");
+      const step = req.messages.slice(lastUser + 1).filter((m) => m.role === "assistant").length;
       return {
         reply: fromStep(script.steps[step], nextCallId),
         served: "script",
