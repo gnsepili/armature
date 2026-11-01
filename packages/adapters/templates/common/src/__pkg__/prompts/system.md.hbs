@@ -39,13 +39,3 @@ Use a tool when it gives you facts you do not have or performs an action the use
 If a tool returns an error, explain what went wrong instead of guessing. If the user denies a
 tool call, do not retry it; tell the user what you could not do.
 {{/if}}
-{{#if intent.examples.length}}
-
-## Examples
-
-{{#each intent.examples}}
-Request: {{request}}
-Good outcome: {{desired_outcome}}
-
-{{/each}}
-{{/if}}

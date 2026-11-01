@@ -8,6 +8,7 @@ import { ArmatureError, ExitCode } from "./errors.ts";
 import { buildLock, LOCK_FILE, type LockFile, lockEntries, parseLock, serializeLock } from "./lock.ts";
 import { type ProjectPlan, planProject } from "./plan.ts";
 import { type RenderedFile, renderProject } from "./render.ts";
+import { seedEvalFiles } from "./seeds.ts";
 import { applyFiles, assertInitTarget, type PlannedAction } from "./write.ts";
 
 export const SPEC_FILE = "armature.yaml";
@@ -59,7 +60,10 @@ export function compile(spec: AgentSpec, opts: { allowExperimental?: boolean } =
       "pass --experimental to generate anyway",
     );
   const plan = planProject(spec);
-  const rendered = renderProject(plan, [...templateLayers(plan.framework), handoffLayer()]);
+  const rendered = [
+    ...renderProject(plan, [...templateLayers(plan.framework), handoffLayer()]),
+    ...seedEvalFiles(plan),
+  ].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   const files = withSkillCopies(rendered, { targets: plan.assistant.targets });
   return { plan, compat, files };
 }
