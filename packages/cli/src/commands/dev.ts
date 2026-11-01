@@ -2,7 +2,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, request, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
-import { ArmatureError, compile, ExitCode, loadSpec, SPEC_FILE } from "@armature/core";
+import { ArmatureError, compile, ExitCode, loadSpec, requireVenv, SPEC_FILE, waitHealthy } from "@armature/core";
 import { type MockLlm, startMockLlm } from "@armature/mock-llm";
 import { playgroundDir } from "@armature/playground";
 import { c, type Io } from "../io.ts";
@@ -101,31 +101,6 @@ export async function startPlaygroundServer(opts: {
   };
 }
 
-export function venvPython(dir: string): string {
-  return process.platform === "win32"
-    ? join(dir, ".venv", "Scripts", "python.exe")
-    : join(dir, ".venv", "bin", "python");
-}
-
-async function waitHealthy(url: string, child: ChildProcess, timeoutMs = 60_000): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null)
-      throw new ArmatureError(
-        `the app exited with code ${child.exitCode} before it was ready`,
-        ExitCode.environment,
-      );
-    try {
-      if ((await fetch(`${url}/health`)).ok) return;
-    } catch {}
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new ArmatureError(
-    `the app did not answer ${url}/health within ${timeoutMs / 1000}s`,
-    ExitCode.environment,
-  );
-}
-
 function openBrowser(url: string) {
   const [cmd, args] =
     process.platform === "darwin"
@@ -153,13 +128,7 @@ export async function devCommand(io: Io, dirArg: string | undefined, opts: DevOp
   const dir = resolve(io.cwd, dirArg ?? ".");
   const { spec } = loadSpec(join(dir, SPEC_FILE));
   const { plan } = compile(spec, { allowExperimental: true });
-  const python = venvPython(dir);
-  if (!existsSync(python))
-    throw new ArmatureError(
-      `no virtual environment in ${dir}`,
-      ExitCode.environment,
-      "run `uv sync` in the project first",
-    );
+  const python = requireVenv(dir);
   const host = opts.host ?? "127.0.0.1";
   const appPort = port(opts.appPort, 8000, "--app-port");
   const uiPort = port(opts.port, 5174, "--port");

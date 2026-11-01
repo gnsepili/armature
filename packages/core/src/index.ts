@@ -1,3 +1,4 @@
+export * from "./app.ts";
 export * from "./catalog.ts";
 export * from "./compat.ts";
 export * from "./compile.ts";
@@ -5,5 +6,6 @@ export * from "./errors.ts";
 export * from "./lock.ts";
 export * from "./plan.ts";
 export * from "./render.ts";
+export * from "./seeds.ts";
 export * from "./version.ts";
 export * from "./write.ts";
