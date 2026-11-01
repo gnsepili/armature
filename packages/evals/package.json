@@ -1,0 +1,17 @@
+{
+  "name": "@armature/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@armature/arc": "workspace:*",
+    "@armature/core": "workspace:*",
+    "@armature/mock-llm": "workspace:*",
+    "@armature/schema": "workspace:*",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  }
+}

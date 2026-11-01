@@ -263,7 +263,26 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
-  packages/evals: {}
+  packages/evals:
+    dependencies:
+      '@armature/arc':
+        specifier: workspace:*
+        version: link:../arc
+      '@armature/core':
+        specifier: workspace:*
+        version: link:../core
+      '@armature/mock-llm':
+        specifier: workspace:*
+        version: link:../mock-llm
+      '@armature/schema':
+        specifier: workspace:*
+        version: link:../schema
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   packages/handoff: {}
 
