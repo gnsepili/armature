@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { conformance, generateProject, hasUv, install, pytest, summary } from "./harness.ts";
+import { conformance, evalCli, generateProject, hasUv, install, pytest, summary } from "./harness.ts";
 
 const spec = {
   schema_version: 1,
@@ -35,5 +35,13 @@ describe.skipIf(!hasUv())("openai-agents project", () => {
   it("passes ARC conformance", async () => {
     const { report, logs } = await conformance(dir, "oa_support");
     expect(report.passed, `${summary(report)}\n\n${logs}`).toBe(true);
+  });
+
+  it("validates its benchmark and passes the smoke suite offline", async () => {
+    const v = await evalCli(dir, ["validate"]);
+    expect(v.code, v.out).toBe(0);
+    const r = await evalCli(dir, ["run", "--suite", "smoke", "--offline"]);
+    expect(r.code, r.out).toBe(0);
+    expect(r.out).toContain("PASS");
   });
 });

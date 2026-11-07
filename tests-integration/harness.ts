@@ -107,3 +107,22 @@ export async function conformance(
 export function summary(report: ConformanceReport): string {
   return report.checks.map((c) => `${c.status} ${c.key} ${c.details.join(" | ")}`).join("\n");
 }
+
+/** Runs `armature eval <args>` in-process against the project; returns the exit code and output. */
+export async function evalCli(dir: string, args: string[]): Promise<{ code: number; out: string }> {
+  const { run } = await import("../packages/cli/src/index.ts");
+  const out: string[] = [];
+  const code = await run(["eval", ...args], {
+    cwd: dir,
+    env: { ...process.env, NO_COLOR: "1" },
+    stdout: (t) => {
+      out.push(t);
+    },
+    stderr: (t) => {
+      out.push(t);
+    },
+    readStdin: async () => "",
+    interactive: false,
+  });
+  return { code, out: out.join("") };
+}
