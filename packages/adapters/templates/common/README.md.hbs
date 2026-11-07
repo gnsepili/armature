@@ -8,7 +8,7 @@
 ## Run it
 
 ```bash
-uv venv && uv pip install -e ".[dev]"
+uv sync --extra dev
 cp .env.example .env   # then set {{model.api_key_env}}
 python -m {{package}} chat     # talk to the agent in the terminal
 python -m {{package}} serve    # ARC HTTP server on http://127.0.0.1:8000

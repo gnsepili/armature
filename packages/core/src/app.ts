@@ -18,7 +18,7 @@ export function requireVenv(dir: string): string {
     throw new ArmatureError(
       `no virtual environment in ${dir}`,
       ExitCode.environment,
-      "run `uv sync` in the project first",
+      "run `uv sync --extra dev` in the project first",
     );
   return python;
 }

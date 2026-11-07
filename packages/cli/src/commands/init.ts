@@ -81,7 +81,7 @@ export async function initCommand(io: Io, dirArg: string | undefined, opts: Init
       "",
       "Next:",
       `  cd ${rel}`,
-      "  uv sync",
+      "  uv sync --extra dev",
       `  armature dev --offline       ${c.dim("# playground on the mock model, no API key")}`,
       `  export ${key}=...  &&  armature dev`,
       `  claude  ${c.dim("then /build-agent")}   ${c.dim("# or codex, reading AGENTS.md")}`,
