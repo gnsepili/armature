@@ -43,6 +43,7 @@
     "@armature/adapters": "workspace:*",
     "@armature/arc": "workspace:*",
     "@armature/core": "workspace:*",
+    "@armature/evals": "workspace:*",
     "@armature/handoff": "workspace:*",
     "@armature/mock-llm": "workspace:*",
     "@armature/playground": "workspace:*",

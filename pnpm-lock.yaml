@@ -226,6 +226,9 @@ importers:
       '@armature/core':
         specifier: workspace:*
         version: link:../core
+      '@armature/evals':
+        specifier: workspace:*
+        version: link:../evals
       '@armature/handoff':
         specifier: workspace:*
         version: link:../handoff

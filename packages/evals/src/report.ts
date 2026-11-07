@@ -17,7 +17,9 @@ function headline(s: RunSnapshot): string[] {
     m.basis === "VERIFIED" ? `${m.verified} verified` : m.basis === "DRAFT" ? `${m.cases} DRAFT` : "no";
   return [
     `Task success: ${pct(m.task_success)}${ci(m.task_success_ci)} over ${basis} case(s)`,
-    `pass@1 ${pct(m.pass_at_1)} · pass@${m.k} ${pct(m.pass_at_k)} · pass^${m.k} ${pct(m.pass_pow_k)} · ${m.trials} trial(s)`,
+    m.k > 1
+      ? `pass@1 ${pct(m.pass_at_1)} · pass@${m.k} ${pct(m.pass_at_k)} · pass^${m.k} ${pct(m.pass_pow_k)} · ${m.trials} trial(s)`
+      : `pass@1 ${pct(m.pass_at_1)} · ${m.trials} trial(s); add trials for pass@k`,
     ...(m.basis === "VERIFIED" && m.drafts
       ? [`Drafts (not scored): ${pct(m.draft_task_success)} of ${m.drafts}`]
       : []),

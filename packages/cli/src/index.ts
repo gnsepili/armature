@@ -6,6 +6,13 @@ import { ARMATURE_VERSION, ExitCode } from "@armature/core";
 import { Command, CommanderError } from "commander";
 import { chatCommand } from "./commands/chat.ts";
 import { devCommand } from "./commands/dev.ts";
+import {
+  evalCompareCommand,
+  evalFreezeCommand,
+  evalReportCommand,
+  evalRunCommand,
+  evalValidateCommand,
+} from "./commands/eval.ts";
 import { generateCommand } from "./commands/generate.ts";
 import { initCommand } from "./commands/init.ts";
 import { planCommand } from "./commands/plan.ts";
@@ -104,7 +111,54 @@ function program(io: Io, setCode: (code: number) => void): Command {
     .option("--json", "with --message: print the ARC run result")
     .action(action((opts) => chatCommand(io, opts)));
 
-  for (const cmd of root.commands) {
+  const evals = root.command("eval").description("Validate, run, report and compare the eval benchmark");
+  evals
+    .command("validate")
+    .description("Check cases statically, then replay them against the mock model")
+    .argument("[dir]", "project directory", ".")
+    .option("--static", "static checks only; do not start the app")
+    .option("--suite <name>", "check only this suite (repeatable)", collect)
+    .option("--json", "machine-readable output")
+    .action(action((dir: string, opts) => evalValidateCommand(io, dir, opts)));
+  evals
+    .command("run")
+    .description("Run a suite through the app and gate on the result")
+    .argument("[dir]", "project directory", ".")
+    .option("--suite <name>", "suite to run", "dev")
+    .option("--case <id>", "run only this case (repeatable)", collect)
+    .option("--sample <n>", "run a deterministic sample of n cases")
+    .option("--seed <n>", "seed for --sample and bootstrap intervals", "0")
+    .option("--trials <n>", "trials per case (default: the suite's)")
+    .option("--offline", "use the bundled mock model; checks wiring, not quality")
+    .option("--max-cost <usd>", "stop starting trials past this spend (default: run_policy)")
+    .option("--concurrency <n>", "parallel trials when live (default: run_policy)")
+    .option("--json", "print the run snapshot")
+    .action(action((dir: string, opts) => evalRunCommand(io, dir, opts)));
+  evals
+    .command("report")
+    .description("Print a run's report")
+    .argument("[run]", "run id, a unique part of one, or latest", "latest")
+    .option("-C, --dir <dir>", "project directory", ".")
+    .option("--reveal", "include per-case results of aggregate-only suites")
+    .option("--json", "print the run snapshot")
+    .action(action((ref: string, opts) => evalReportCommand(io, ref, opts)));
+  evals
+    .command("compare")
+    .description("Compare two runs of one suite case by case")
+    .argument("<a>", "baseline run")
+    .argument("<b>", "candidate run")
+    .option("-C, --dir <dir>", "project directory", ".")
+    .option("--reveal", "use per-case results of aggregate-only suites")
+    .option("--json", "machine-readable output")
+    .action(action((a: string, b: string, opts) => evalCompareCommand(io, a, b, opts)));
+  evals
+    .command("freeze")
+    .description("Record case hashes in evals/benchmark.lock once cases are VERIFIED")
+    .argument("[dir]", "project directory", ".")
+    .option("--json", "machine-readable output")
+    .action(action((dir: string, opts) => evalFreezeCommand(io, dir, opts)));
+
+  for (const cmd of [...root.commands, ...evals.commands]) {
     cmd.exitOverride();
     cmd.configureOutput({ writeOut: io.stdout, writeErr: io.stderr });
     cmd.showHelpAfterError();

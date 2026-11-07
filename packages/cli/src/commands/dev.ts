@@ -1,8 +1,16 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, request, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
-import { ArmatureError, compile, ExitCode, loadSpec, requireVenv, SPEC_FILE, waitHealthy } from "@armature/core";
+import {
+  ArmatureError,
+  compile,
+  ExitCode,
+  loadSpec,
+  requireVenv,
+  SPEC_FILE,
+  waitHealthy,
+} from "@armature/core";
 import { type MockLlm, startMockLlm } from "@armature/mock-llm";
 import { playgroundDir } from "@armature/playground";
 import { c, type Io } from "../io.ts";
