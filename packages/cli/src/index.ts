@@ -6,9 +6,11 @@ import { ARMATURE_VERSION, ExitCode } from "@armature/core";
 import { Command, CommanderError } from "commander";
 import { chatCommand } from "./commands/chat.ts";
 import { devCommand } from "./commands/dev.ts";
+import { doctorCommand } from "./commands/doctor.ts";
 import {
   evalCompareCommand,
   evalFreezeCommand,
+  evalPlanCommand,
   evalReportCommand,
   evalRunCommand,
   evalValidateCommand,
@@ -17,6 +19,7 @@ import { generateCommand } from "./commands/generate.ts";
 import { initCommand } from "./commands/init.ts";
 import { planCommand } from "./commands/plan.ts";
 import { syncCommand } from "./commands/sync.ts";
+import { TEST_PARTS, testCommand } from "./commands/test.ts";
 import { type Io, printFailure, processIo, toFailure } from "./io.ts";
 
 const collect = (value: string, previous: string[] = []) => [...previous, value];
@@ -111,7 +114,32 @@ function program(io: Io, setCode: (code: number) => void): Command {
     .option("--json", "with --message: print the ARC run result")
     .action(action((opts) => chatCommand(io, opts)));
 
-  const evals = root.command("eval").description("Validate, run, report and compare the eval benchmark");
+  root
+    .command("doctor")
+    .description("Check the spec, scaffold, venv, pins and secrets a project needs to run")
+    .argument("[dir]", "project directory", ".")
+    .option("--probe", "make one live model call through the app (costs a fraction of a cent)")
+    .option("--conformance", "also run the ARC conformance suite against the mock model")
+    .option("--json", "machine-readable output")
+    .action(action((dir: string, opts) => doctorCommand(io, dir, opts)));
+
+  root
+    .command("test")
+    .description("Run golden scaffold checks, the project's unit tests and ARC conformance, offline")
+    .argument("[dir]", "project directory", ".")
+    .option("--only <part>", `run only this part (${TEST_PARTS.join(", ")}); repeatable`, collect)
+    .option("--json", "machine-readable output")
+    .action(action((dir: string, opts) => testCommand(io, dir, opts)));
+
+  const evals = root
+    .command("eval")
+    .description("Plan, validate, run, report and compare the eval benchmark");
+  evals
+    .command("plan")
+    .description("Show objectives, suites, trust status, gates and freeze state")
+    .argument("[dir]", "project directory", ".")
+    .option("--json", "machine-readable output")
+    .action(action((dir: string, opts) => evalPlanCommand(io, dir, opts)));
   evals
     .command("validate")
     .description("Check cases statically, then replay them against the mock model")
