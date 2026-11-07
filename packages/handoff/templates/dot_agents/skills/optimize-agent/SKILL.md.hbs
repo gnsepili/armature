@@ -18,8 +18,9 @@ You change the agent, never the benchmark. Frozen cases, graders, references and
    experiment, or you cannot tell what helped.
 4. **Rerun.** `armature eval run --sample 10` while iterating, then the full dev suite before
    deciding.
-5. **Compare.** `armature eval compare <before> <after>`. Each case is labelled improvement,
-   regression or within noise.
+5. **Compare.** `armature eval compare <before> <after>`. Each common case is labelled
+   `improved`, `regressed`, `within_noise` or `unchanged`; only `improved` and `regressed`
+   are real (Fisher's exact test, p <= 0.1). Exit 4 means a comparison gate failed.
 6. **Decide.** Keep the change only if it is better beyond noise, introduces no regressions
    and fails no gate. Otherwise revert it.
 7. **Log.** Append an entry to `evals/EXPERIMENTS.md` whatever the decision.

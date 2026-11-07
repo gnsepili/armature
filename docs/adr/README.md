@@ -10,3 +10,4 @@ never rewritten after acceptance; supersede with a new ADR instead.
 | [0002](0002-arc-v1.md)                  | ARC v1: AG-UI events and Agent Protocol naming | Accepted |
 | [0003](0003-cli-surface-v0.md)          | CLI surface for 0.1                            | Accepted |
 | [0004](0004-handoff-kit-and-sync.md)    | Coding-agent handoff kit and `armature sync`   | Accepted |
+| [0005](0005-eval-cli.md)                | `armature eval` commands and run snapshots     | Accepted |

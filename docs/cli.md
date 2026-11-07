@@ -91,3 +91,24 @@ armature chat -m "..." --json          # the finished ARC run as JSON
 `--url` (default `http://127.0.0.1:8000`) and `--thread <id>`. In a terminal, tools that need
 approval are confirmed inline; elsewhere the paused run is reported and can be approved in the
 playground.
+
+## `armature eval`
+
+The benchmark loop. The contract is [ADR 0005](adr/0005-eval-cli.md).
+
+```bash
+armature eval validate                         # lint, null-agent pass, reference replay (mock model)
+armature eval validate --static                # lint only; no app, no .venv needed
+armature eval run --suite smoke --offline      # wiring check on the mock model
+armature eval run --suite dev --sample 10      # live, a deterministic sample
+armature eval run --case happy-where-is-my-order --trials 5
+armature eval report latest
+armature eval compare <before> <after>
+armature eval freeze                           # once every dev case is VERIFIED
+```
+
+`run` defaults to the `dev` suite and the suite's `trials`. Live runs print a cost estimate
+and stop starting trials once `--max-cost` (default `run_policy.max_cost_usd_per_run`) is
+spent. Each run writes `evals/runs/<id>/run.json` and `report.md`. Offline results are
+labelled MOCK; DRAFT cases are reported but never gate. `run` and `compare` exit 4 when a gate
+fails.

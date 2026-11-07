@@ -18,6 +18,7 @@ Every capability carries one label. Update a row when its state changes, and onl
 | Run limits and timeouts | IMPLEMENTED | Covered by tests/test_guardrails.py |
 | Model `{{model.id}}` | REQUIRES_AUTH | Needs `{{model.api_key_env}}`; tests use the mock model |
 | Offline model | MOCK | `ARMATURE_MODEL_MODE=mock`; scripted answers only |
+| Eval benchmark | MOCK | Seeded DRAFT cases; `armature eval run --suite smoke --offline` checks wiring only |
 {{#if has_approval_tools}}
 | Approvals | IMPLEMENTED | Write: `{{approvals.write}}`, destructive: `{{approvals.destructive}}` |
 {{/if}}

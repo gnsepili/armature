@@ -13,15 +13,15 @@ Framework details are in `references/{{framework}}.md`.
   model, so a failure there is in the code, not the model.
 - Live: `uv run python -m {{package}} serve`, then send the same input. Live needs
   `{{model.api_key_env}}`.
-- For a failing eval case, rerun just that case with `armature eval run` and its id, and keep
-  the run id.
+- For a failing eval case, rerun just that case with `armature eval run --case <id>` (add
+  `--offline` to rule out the model), and keep the run id from the report.
 - `armature dev` shows each run's events, tool calls and approvals in the playground.
 
 ## 2. Read the run record
 
 `GET /runs/{run_id}` returns the record. Look at, in order:
 
-1. `status`: `completed`, `interrupted` (waiting for approval) or `error`.
+1. `status`: `success`, `interrupted` (waiting for approval) or `error`.
 2. `error.code`, then `error.message`:
 
 | Code | Usually means |
