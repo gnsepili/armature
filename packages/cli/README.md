@@ -6,11 +6,11 @@ for Claude Code and Codex. The generated project does not depend on Armature at 
 
 ```bash
 npx armature-agents init support-bot --yes --tool lookup_order:read:order_id
-cd support-bot && uv sync
+cd support-bot && uv sync --extra dev
 npx armature-agents dev --offline
 ```
 
-Requires Node 22+, and Python 3.12+ with [uv](https://docs.astral.sh/uv/) for the generated
+Requires Node 22+, and Python 3.11–3.13 with [uv](https://docs.astral.sh/uv/) for the generated
 project.
 
 Docs: [CLI reference](https://github.com/gnsepili/armature/blob/main/docs/cli.md) ·
