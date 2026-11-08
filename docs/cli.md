@@ -70,7 +70,7 @@ Writes nothing. `--json` returns `{plan, compat, files, counts, secrets, tasks}`
 
 ## `armature dev [dir]`
 
-Runs the app from `.venv` (`uv sync` first) and the web playground.
+Runs the app from `.venv` (`uv sync --extra dev` first) and the web playground.
 
 ```bash
 armature dev --offline      # mock model, no API key
@@ -92,11 +92,40 @@ armature chat -m "..." --json          # the finished ARC run as JSON
 approval are confirmed inline; elsewhere the paused run is reported and can be approved in the
 playground.
 
+## `armature doctor [dir]`
+
+```bash
+armature doctor                 # config, toolchain, .venv, pins, secrets; no app, no model call
+armature doctor --conformance   # also serve the app against the mock model and run ARC v1
+armature doctor --probe         # also send one cheap live message that should call a tool
+```
+
+Each check is `ok`, `warn`, `fail` or `skip`. Missing runtime dependencies fail with exit 5;
+missing dev dependencies, an unset model key or a stale scaffold only warn, so `doctor` can
+gate a production image. `--probe` spends one model call, so it never runs by default. The
+exit code is that of the first failed check. Contract: [ADR 0006](adr/0006-doctor-and-test.md).
+
+## `armature test [dir]`
+
+```bash
+armature test                                 # golden, unit, conformance
+armature test --only golden --only unit
+```
+
+- **golden**: managed files match what `armature.yaml` and the templates render. A failure
+  means run `armature generate`, or move a hand edit into a file you own.
+- **unit**: the generated pytest suite, offline.
+- **conformance**: ARC v1 against the mock model.
+
+Exits 1 when a part fails and 5 when `.venv` or pytest is missing. No model key is needed;
+the generated `.github/workflows/armature.yml` runs this and the offline smoke suite.
+
 ## `armature eval`
 
 The benchmark loop. The contract is [ADR 0005](adr/0005-eval-cli.md).
 
 ```bash
+armature eval plan                             # suites, trust status, gates, what is left to freeze
 armature eval validate                         # lint, null-agent pass, reference replay (mock model)
 armature eval validate --static                # lint only; no app, no .venv needed
 armature eval run --suite smoke --offline      # wiring check on the mock model
