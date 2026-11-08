@@ -1,5 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { conformance, evalCli, generateProject, hasUv, install, pytest, summary } from "./harness.ts";
+import {
+  armature,
+  conformance,
+  evalCli,
+  generateProject,
+  hasUv,
+  install,
+  pytest,
+  summary,
+} from "./harness.ts";
 
 const spec = {
   schema_version: 1,
@@ -43,5 +52,14 @@ describe.skipIf(!hasUv())("openai-agents project", () => {
     const r = await evalCli(dir, ["run", "--suite", "smoke", "--offline"]);
     expect(r.code, r.out).toBe(0);
     expect(r.out).toContain("PASS");
+  });
+
+  it("passes `armature test` and `armature doctor` without a model key", async () => {
+    const t = await armature(dir, ["test"]);
+    expect(t.code, t.out).toBe(0);
+    expect(t.out).toContain("all tests passed");
+    const d = await armature(dir, ["doctor", "--json"]);
+    expect(d.code, d.out).toBe(0);
+    expect(JSON.parse(d.out).checks.filter((c: { status: string }) => c.status === "fail")).toEqual([]);
   });
 });
