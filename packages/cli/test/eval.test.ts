@@ -13,6 +13,19 @@ beforeAll(async () => {
 });
 
 describe("armature eval", () => {
+  it("plan reports suites, trust and the work left before freezing", async () => {
+    const r = await cli(dir, ["eval", "plan", "--json"]);
+    expect(r.code, r.out).toBe(ExitCode.ok);
+    const body = r.json();
+    expect(body.freeze).toBe("not frozen");
+    const smoke = body.suites.find((s: { name: string }) => s.name === "smoke");
+    expect(smoke.cases).toBeGreaterThan(0);
+    expect(smoke.trust.DRAFT_UNVERIFIED).toBe(smoke.cases);
+    expect(body.unverified_cases).toBeGreaterThan(0);
+    const text = await cli(dir, ["eval", "plan"]);
+    expect(text.out).toContain("armature eval freeze");
+  });
+
   it("validate --static passes on the seeded benchmark", async () => {
     const r = await cli(dir, ["eval", "validate", "--static", "--json"]);
     expect(r.code, r.out).toBe(ExitCode.ok);

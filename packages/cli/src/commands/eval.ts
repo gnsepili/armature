@@ -33,7 +33,7 @@ import {
 } from "@armature/evals";
 import { c, type Io, printJson } from "../io.ts";
 
-/** `armature eval validate | run | report | compare | freeze`. */
+/** `armature eval plan | validate | run | report | compare | freeze`. */
 
 function intOpt(value: string | undefined, flag: string, min = 1): number | undefined {
   if (value === undefined) return undefined;
@@ -335,4 +335,111 @@ export function evalFreezeCommand(io: Io, dirArg: string | undefined, opts: { js
     io.stdout(`  ${name.padEnd(10)} ${s.count} case(s), hash only\n`);
   io.stdout(`${c.green("frozen")} evals/benchmark.lock; commit it with the cases\n`);
   return ExitCode.ok;
+}
+
+export interface SuitePlan {
+  name: string;
+  path: string;
+  mode: "offline" | "live" | "any";
+  trials: number;
+  report: "full" | "aggregate_only";
+  exists: boolean;
+  in_project: boolean;
+  cases: number;
+  trust: Record<string, number>;
+  categories: Record<string, number>;
+  critical: number;
+}
+
+const tally = (values: string[]) => {
+  const out: Record<string, number> = {};
+  for (const v of [...values].sort()) out[v] = (out[v] ?? 0) + 1;
+  return out;
+};
+
+/**
+ * Shows what the benchmark measures and how far it is from trustworthy: objectives, suites with
+ * their trust and category balance, gates, targets and whether it still matches the freeze.
+ * Never prints case ids or inputs, so it is safe for held-out suites.
+ */
+export function evalPlanCommand(io: Io, dirArg: string | undefined, opts: { json?: boolean }): number {
+  const dir = resolve(io.cwd, dirArg ?? ".");
+  const bench = loadBenchmark(dir);
+  const suites: SuitePlan[] = [...bench.suites.values()].map((s) => ({
+    name: s.name,
+    path: s.config.path,
+    mode: s.config.mode,
+    trials: s.config.trials,
+    report: s.config.report,
+    exists: s.exists,
+    in_project: s.inProject,
+    cases: s.cases.length,
+    trust: tally(s.cases.map((lc) => lc.case.trust)),
+    categories: tally(s.cases.map((lc) => lc.case.category)),
+    critical: s.cases.filter((lc) => lc.case.severity === "critical").length,
+  }));
+  const frozen = checkFrozen(bench);
+  const freeze = frozen === null ? "not frozen" : frozen.changed ? "changed since freeze" : "frozen";
+  const dev = suites.find((s) => s.name === "dev");
+  const unverified = suites.reduce((n, s) => n + s.cases - (s.trust.VERIFIED ?? 0), 0);
+  const errors = bench.issues.filter((i) => i.level === "error").length;
+
+  if (opts.json) {
+    printJson(io, {
+      ok: errors === 0,
+      command: "eval plan",
+      dir,
+      objectives: bench.spec.objectives,
+      suites,
+      gates: bench.spec.gates,
+      targets: bench.spec.targets,
+      min_dev_cases: bench.spec.min_dev_cases,
+      freeze,
+      frozen_diff: frozen,
+      unverified_cases: unverified,
+      issues: bench.issues,
+    });
+    return errors ? ExitCode.validation : ExitCode.ok;
+  }
+
+  const o = bench.spec.objectives;
+  io.stdout(`${c.bold("objective")}   ${o.primary}; diagnostics: ${o.diagnostics.join(", ")}\n\n`);
+  io.stdout(`${c.bold("suites")}\n`);
+  for (const s of suites) {
+    const where = s.exists ? "" : c.yellow(" (missing)");
+    const flags = [
+      s.mode,
+      `${s.trials} trial(s)`,
+      ...(s.report === "aggregate_only" ? ["aggregate only"] : []),
+    ];
+    io.stdout(
+      `  ${s.name.padEnd(10)} ${String(s.cases).padStart(3)} case(s)  ${c.dim(flags.join(", "))}${where}\n`,
+    );
+    if (!s.cases) continue;
+    const trust = Object.entries(s.trust).map(([k, n]) => `${n} ${k}`);
+    io.stdout(`  ${"".padEnd(10)} ${c.dim(`trust: ${trust.join(", ")}`)}\n`);
+    const cats = Object.entries(s.categories).map(([k, n]) => `${k} ${n}`);
+    io.stdout(
+      `  ${"".padEnd(10)} ${c.dim(`categories: ${cats.join(", ")}${s.critical ? `; ${s.critical} critical` : ""}`)}\n`,
+    );
+  }
+  const g = bench.spec.gates;
+  io.stdout(
+    `\n${c.bold("gates")}       critical failures allowed ${g.critical_failures_allowed}; max task-success regression ${g.max_task_success_regression}\n`,
+  );
+  const t = Object.entries(bench.spec.targets).map(([k, v]) => `${k} ${v}`);
+  if (t.length) io.stdout(`${c.bold("targets")}     ${t.join("; ")}\n`);
+  io.stdout(`${c.bold("freeze")}      ${frozen?.changed ? c.yellow(freeze) : freeze}\n\n`);
+
+  const todo: string[] = [];
+  if (errors) todo.push(`fix ${errors} benchmark error(s): \`armature eval validate --static\``);
+  if (dev && dev.cases < bench.spec.min_dev_cases)
+    todo.push(`grow the dev suite to ${bench.spec.min_dev_cases} cases (has ${dev.cases})`);
+  if (unverified) todo.push(`review ${unverified} case(s) and set \`trust: VERIFIED\``);
+  if (frozen === null || frozen.changed) todo.push("freeze the reviewed benchmark: `armature eval freeze`");
+  if (todo.length) {
+    io.stdout(`${c.bold("next")}\n`);
+    for (const line of todo) io.stdout(`  - ${line}\n`);
+  } else io.stdout(`${c.green("benchmark is frozen and fully verified")}\n`);
+  return errors ? ExitCode.validation : ExitCode.ok;
 }
