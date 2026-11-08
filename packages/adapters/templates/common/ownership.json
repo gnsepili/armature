@@ -1,3 +1,9 @@
 {
-  "generated-once": ["README.md", "src/*/tools/*.py", "src/*/prompts/**", "tests/test_tools.py"]
+  "generated-once": [
+    "README.md",
+    "src/*/tools/*.py",
+    "src/*/prompts/**",
+    "tests/test_tools.py",
+    ".github/workflows/armature.yml"
+  ]
 }

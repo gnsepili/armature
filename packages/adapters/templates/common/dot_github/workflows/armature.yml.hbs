@@ -1,0 +1,27 @@
+# Runs the offline checks on every push and pull request: the generated unit tests, ARC
+# conformance, the scaffold golden check, and the smoke suite against the mock model.
+# No model key is needed. Generated once; this file is yours to edit.
+name: armature
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "{{python_version}}"
+      - run: uv sync --extra dev
+      - run: npx --yes armature-agents@{{armature_version}} test
+      - run: npx --yes armature-agents@{{armature_version}} eval run --suite smoke --offline

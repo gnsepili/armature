@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import Handlebars from "handlebars";
 import type { PlannedTool, ProjectPlan } from "./plan.ts";
+import { ARMATURE_VERSION } from "./version.ts";
 
 /** managed: regenerated while unmodified. generated-once: written at init, then owned by the user. */
 export type Ownership = "managed" | "generated-once";
@@ -115,7 +116,7 @@ export function renderProject(plan: ProjectPlan, layers: string[]): RenderedFile
       const targets: (PlannedTool | undefined)[] = rel.includes("__tool__") ? plan.tools : [undefined];
       for (const tool of targets) {
         const path = outputPath(rel, plan, tool);
-        let content = template ? template({ ...plan, tool }) : source;
+        let content = template ? template({ ...plan, tool, armature_version: ARMATURE_VERSION }) : source;
         if (!content.trim()) {
           files.delete(path);
           continue;
