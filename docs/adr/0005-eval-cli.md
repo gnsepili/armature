@@ -13,13 +13,13 @@ CLI, so the commands, their flags, the exit codes and the files they write are c
 
 **Commands.** One group, `armature eval`:
 
-| Command | Does |
-| --- | --- |
-| `validate [dir] [--static] [--suite <name>]...` | Static lint, then (unless `--static`) a null-agent pass and a replay of every reference trajectory against the mock model |
-| `run [dir] [--suite dev] [--case <id>]... [--sample N --seed S] [--trials N] [--offline] [--max-cost USD] [--concurrency N]` | Runs a suite through ARC in eval mode and writes a snapshot |
-| `report [run\|latest] [-C dir] [--reveal]` | Prints a run's markdown report |
-| `compare <a> <b> [-C dir] [--reveal]` | Case-by-case comparison of two runs of one suite |
-| `freeze [dir]` | Writes `evals/benchmark.lock` |
+| Command                                                                                                                      | Does                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `validate [dir] [--static] [--suite <name>]...`                                                                              | Static lint, then (unless `--static`) a null-agent pass and a replay of every reference trajectory against the mock model |
+| `run [dir] [--suite dev] [--case <id>]... [--sample N --seed S] [--trials N] [--offline] [--max-cost USD] [--concurrency N]` | Runs a suite through ARC in eval mode and writes a snapshot                                                               |
+| `report [run\|latest] [-C dir] [--reveal]`                                                                                   | Prints a run's markdown report                                                                                            |
+| `compare <a> <b> [-C dir] [--reveal]`                                                                                        | Case-by-case comparison of two runs of one suite                                                                          |
+| `freeze [dir]`                                                                                                               | Writes `evals/benchmark.lock`                                                                                             |
 
 All take `--json`. Run references are an exact id, `latest`, or a unique part of an id.
 

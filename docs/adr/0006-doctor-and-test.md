@@ -14,18 +14,18 @@ with. Their checks, statuses, flags and exit codes are therefore contracts. The 
 **`armature doctor [dir] [--probe] [--conformance] [--json]`** runs checks in order and
 reports each as `ok`, `warn`, `fail` or `skip`:
 
-| Check | Fails (exit) when | Warns when |
-| --- | --- | --- |
-| node | Node is older than 22 (5) | |
-| uv | | `uv` is not on `PATH` |
-| spec | `armature.yaml` is missing or invalid (its own code: 1 or 2) | |
-| model | | the model is not in the bundled catalog |
-| lock / scaffold | there is no `armature.lock` (1) | the template version moved, the scaffold is stale, or managed files were edited |
-| venv, python, dependencies | no `.venv`, the package is not installed, or a runtime pin is missing or different (5) | Python is outside the supported versions |
-| dev deps | | a dev pin (pytest) is missing; only `armature test` needs it |
-| api key, tool secrets | | an `api_key_env` or a tool's `auth_env` is unset |
-| probe | the live call errors (5) | the model answered without calling a tool |
-| conformance | an ARC v1 check fails (1) | |
+| Check                      | Fails (exit) when                                                                      | Warns when                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| node                       | Node is older than 22 (5)                                                              |                                                                                 |
+| uv                         |                                                                                        | `uv` is not on `PATH`                                                           |
+| spec                       | `armature.yaml` is missing or invalid (its own code: 1 or 2)                           |                                                                                 |
+| model                      |                                                                                        | the model is not in the bundled catalog                                         |
+| lock / scaffold            | there is no `armature.lock` (1)                                                        | the template version moved, the scaffold is stale, or managed files were edited |
+| venv, python, dependencies | no `.venv`, the package is not installed, or a runtime pin is missing or different (5) | Python is outside the supported versions                                        |
+| dev deps                   |                                                                                        | a dev pin (pytest) is missing; only `armature test` needs it                    |
+| api key, tool secrets      |                                                                                        | an `api_key_env` or a tool's `auth_env` is unset                                |
+| probe                      | the live call errors (5)                                                               | the model answered without calling a tool                                       |
+| conformance                | an ARC v1 check fails (1)                                                              |                                                                                 |
 
 The exit code is that of the first failed check, else 0. Warnings never change it, so
 `doctor` can run in a production image without dev dependencies or in CI without a key.
