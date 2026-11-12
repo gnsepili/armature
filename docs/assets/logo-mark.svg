@@ -1,6 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Armature">
-  <polygon points="64,20 40.4,72 87.6,72" fill="#E2673A"/>
-  <path d="M24 108 64 20 104 108M40.4 72h47.2" fill="none" stroke="#0f172a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="24" cy="108" r="8" fill="#0f172a"/>
-  <circle cx="104" cy="108" r="8" fill="#0f172a"/>
+  <defs>
+    <mask id="armature-under-bar" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+      <rect width="128" height="128" fill="#fff"/>
+      <path d="M13.0 56.9 107.0 91.1" stroke="#000" stroke-width="26" stroke-linecap="round"/>
+    </mask>
+    <mask id="armature-under-leg" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+      <rect width="128" height="128" fill="#fff"/>
+      <path d="M64 14 30 114" stroke="#000" stroke-width="30" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <path d="M64 14 98 114" stroke="#0f172a" stroke-width="20" stroke-linecap="round" mask="url(#armature-under-bar)"/>
+  <path d="M13.0 56.9 107.0 91.1" stroke="#E2673A" stroke-width="16" stroke-linecap="round" mask="url(#armature-under-leg)"/>
+  <path d="M64 14 30 114" stroke="#0f172a" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="13.0" cy="56.9" r="12" fill="#E2673A"/>
 </svg>
