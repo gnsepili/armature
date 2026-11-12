@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a capability, framework, pattern or command.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What you would like Armature to do. Spec snippets or command examples help.
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Contracts
+      options:
+        - label: This changes a public contract (schema, ARC, eval case format, CLI flags or exit codes) and will need an ADR.

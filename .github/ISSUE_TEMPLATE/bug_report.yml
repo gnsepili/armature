@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in the CLI or a generated project does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest `armature.yaml` and commands that show the problem.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Armature version
+      description: Output of `armature --version`.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options: [LangGraph, OpenAI Agents SDK, Not framework specific]
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS, Node and Python versions
+      placeholder: macOS 26, Node 22.20, Python 3.12
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`armature doctor --json` output"
+      description: Run it inside the generated project, if there is one. Remove anything secret.
+      render: json
