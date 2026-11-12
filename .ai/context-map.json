@@ -1,0 +1,416 @@
+{
+  "schema_version": 1,
+  "source_roots": [
+    "packages",
+    "scripts",
+    "tests-integration",
+    "docs",
+    ".github"
+  ],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "tests-integration/.out/**",
+    "pnpm-lock.yaml",
+    "**/.venv/**"
+  ],
+  "excluded_sources": [],
+  "documents": [
+    {
+      "path": ".ai/agents.md",
+      "sources": [],
+      "related": [
+        ".ai/README.md"
+      ]
+    },
+    {
+      "path": ".ai/README.md",
+      "sources": [],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/architecture/module-interactions.md",
+      "sources": [
+        "packages/**",
+        "tests-integration/**",
+        "scripts/**",
+        ".github/**"
+      ],
+      "related": [
+        ".ai/modules/schema.md",
+        ".ai/modules/core.md",
+        ".ai/modules/adapters.md",
+        ".ai/modules/handoff.md",
+        ".ai/modules/arc.md",
+        ".ai/modules/mock-llm.md",
+        ".ai/modules/evals.md",
+        ".ai/modules/playground.md",
+        ".ai/modules/cli.md",
+        ".ai/modules/tests-integration.md",
+        ".ai/modules/repo-tooling.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/schema.md",
+      "sources": [
+        "packages/schema/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/core.md",
+      "sources": [
+        "packages/core/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/adapters.md",
+      "sources": [
+        "packages/adapters/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/handoff.md",
+      "sources": [
+        "packages/handoff/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/arc.md",
+      "sources": [
+        "packages/arc/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/mock-llm.md",
+      "sources": [
+        "packages/mock-llm/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/evals.md",
+      "sources": [
+        "packages/evals/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/playground.md",
+      "sources": [
+        "packages/playground/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/cli.md",
+      "sources": [
+        "packages/cli/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/tests-integration.md",
+      "sources": [
+        "tests-integration/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/modules/repo-tooling.md",
+      "sources": [
+        "scripts/**",
+        "docs/**",
+        ".github/**"
+      ],
+      "related": [
+        ".ai/architecture/module-interactions.md"
+      ]
+    },
+    {
+      "path": ".ai/features/arc-http-api.md",
+      "sources": [
+        "packages/arc/src/client.ts",
+        "packages/arc/src/types.ts",
+        "packages/arc/src/conformance.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/chat.md",
+      "sources": [
+        "packages/cli/src/commands/chat.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/dev.md",
+      "sources": [
+        "packages/cli/src/commands/dev.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/doctor.md",
+      "sources": [
+        "packages/cli/src/commands/doctor.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/eval-report-and-compare.md",
+      "sources": [
+        "packages/evals/src/report.ts",
+        "packages/evals/src/compare.ts",
+        "packages/evals/src/snapshot.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/eval-run.md",
+      "sources": [
+        "packages/evals/src/run.ts",
+        "packages/evals/src/session.ts",
+        "packages/evals/src/suite.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/eval-validate-and-freeze.md",
+      "sources": [
+        "packages/cli/src/commands/eval.ts",
+        "packages/evals/src/freeze.ts",
+        "packages/evals/src/lint.ts",
+        "packages/evals/src/load.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/generate-and-sync.md",
+      "sources": [
+        "packages/cli/src/commands/generate.ts",
+        "packages/cli/src/commands/sync.ts",
+        "packages/core/src/compile.ts",
+        "packages/core/src/write.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/handoff-kit.md",
+      "sources": [
+        "packages/handoff/src/index.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/init.md",
+      "sources": [
+        "packages/cli/src/commands/init.ts",
+        "packages/cli/src/wizard.ts",
+        "packages/cli/src/spec.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/plan.md",
+      "sources": [
+        "packages/cli/src/commands/plan.ts",
+        "packages/cli/src/project.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/playground-ui.md",
+      "sources": [
+        "packages/playground/public/**"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/features/test.md",
+      "sources": [
+        "packages/cli/src/commands/test.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/app-process-launching.md",
+      "sources": [
+        "packages/core/src/app.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/arc-contract-and-client.md",
+      "sources": [
+        "packages/arc/src/**"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/deterministic-generation-and-catalog.md",
+      "sources": [
+        "packages/core/src/catalog.ts",
+        "packages/core/src/compile.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/error-and-exit-codes.md",
+      "sources": [
+        "packages/core/src/errors.ts",
+        "packages/cli/src/index.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/eval-case-lifecycle.md",
+      "sources": [
+        "packages/evals/src/**"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/generated-runtime-adapter.md",
+      "sources": [
+        "packages/adapters/**"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/handoff-kit.md",
+      "sources": [
+        "packages/handoff/src/**"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/io-abstraction-testable-cli.md",
+      "sources": [
+        "packages/cli/src/io.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/mock-llm-scripted-testing.md",
+      "sources": [
+        "packages/mock-llm/src/**"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/ownership-lock-and-templates.md",
+      "sources": [
+        "packages/core/src/write.ts",
+        "packages/core/src/render.ts",
+        "packages/core/src/lock.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/schema-first-contracts.md",
+      "sources": [
+        "packages/schema/src/**"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    },
+    {
+      "path": ".ai/patterns/testing-conventions.md",
+      "sources": [
+        "tests-integration/harness.ts",
+        "packages/cli/test/helpers.ts"
+      ],
+      "related": [
+        ".ai/agents.md"
+      ]
+    }
+  ],
+  "bootstrap": {
+    "completed_steps": [
+      "0",
+      "1",
+      "1.5",
+      "2",
+      "3",
+      "4"
+    ],
+    "skipped_steps": {},
+    "omitted_artifacts": {
+      ".ai/architecture/data-model.md": "Stateless CLI; persistent state is only armature.lock, evals/benchmark.lock and evals/runs snapshots, not a domain model."
+    }
+  }
+}
