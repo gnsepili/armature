@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** ARC (Agent Runtime Contract) v1 wire types. See docs/arc.md and ADR 0002. */
+/** ARC (Agent Runtime Contract) v1 wire types. See docs/adr/0002-arc-v1.md. */
 export const ARC_VERSION = 1 as const;
 
 export const SideEffect = z.enum(["none", "read", "write", "destructive"]);
