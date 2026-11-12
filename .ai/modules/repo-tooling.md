@@ -24,7 +24,7 @@ roots but is described here.
 | ADRs | `../../docs/adr/` (0001 to 0006) | Contract decisions |
 | CLI reference | `../../docs/cli.md` | Flags, exit codes |
 | Community files | `../../README.md`, `../../CONTRIBUTING.md`, `../../SECURITY.md`, `../../CODE_OF_CONDUCT.md`, `../../CHANGELOG.md` | Public face; README support table and command list must match the catalogs and `docs/cli.md` |
-| Brand assets | `../../docs/assets/logo-{light,dark,mark}.svg` | Hand-written SVG; README uses light/dark via `<picture>` |
+| Brand assets | `../../docs/assets/logo-{light,dark,mark}.svg`, `../../docs/assets/social-preview.png` | Hand-written SVG; README uses light/dark via `<picture>`; the 1280×640 PNG is uploaded by hand in GitHub settings |
 | Issue/PR templates | `../../.github/ISSUE_TEMPLATE/`, `../../.github/pull_request_template.md` | Bug/feature forms; PR checklist mirrors the AGENTS.md rules |
 
 ## API Surface

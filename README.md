@@ -14,6 +14,7 @@ before you write the agent itself.
 </p>
 
 [![CI](https://img.shields.io/github/actions/workflow/status/gnsepili/armature/ci.yml?branch=main&label=ci&logo=github)](https://github.com/gnsepili/armature/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/armature-agents?logo=npm)](https://www.npmjs.com/package/armature-agents)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://www.python.org)
