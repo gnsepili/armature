@@ -73,6 +73,10 @@ export async function projectConformance(opts: {
   } finally {
     await Promise.all(apps.map((a) => a.stop()));
     await mock.close();
-    rmSync(scratch, { recursive: true, force: true });
+    // Windows releases the session database lock shortly after the app exits; retry, and never
+    // let a leftover temp directory fail the command.
+    try {
+      rmSync(scratch, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    } catch {}
   }
 }

@@ -21,7 +21,7 @@ export function hasUv(): boolean {
 
 export function generateProject(name: string, spec: Record<string, unknown>): string {
   const dir = join(OUT, name);
-  rmSync(dir, { recursive: true, force: true });
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   mkdirSync(dir, { recursive: true });
   // JSON is valid YAML, which keeps this harness free of a YAML dependency.
   const runtime = { ...(spec.runtime as Record<string, unknown>), python_version: PYTHON };
