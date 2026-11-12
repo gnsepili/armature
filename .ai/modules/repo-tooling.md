@@ -10,7 +10,9 @@ roots but is described here.
 
 ### Boundaries
 
-- IN: `scripts/export-schemas.ts`, `docs/adr/*`, `docs/cli.md`, `.github/workflows/ci.yml`.
+- IN: `scripts/export-schemas.ts`, `docs/adr/*`, `docs/cli.md`, `.github/workflows/ci.yml`, `.github/ISSUE_TEMPLATE/*`,
+  `.github/pull_request_template.md`, and the root community files (README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT,
+  CHANGELOG).
 - OUT: package code; `schemas/*.json` are generated output.
 
 ## Key Components
@@ -21,6 +23,8 @@ roots but is described here.
 | CI | `../../.github/workflows/ci.yml` | Jobs `check`, `unit`, `integration` |
 | ADRs | `../../docs/adr/` (0001 to 0006) | Contract decisions |
 | CLI reference | `../../docs/cli.md` | Flags, exit codes |
+| Community files | `../../README.md`, `../../CONTRIBUTING.md`, `../../SECURITY.md`, `../../CODE_OF_CONDUCT.md`, `../../CHANGELOG.md` | Public face; README support table and command list must match the catalogs and `docs/cli.md` |
+| Issue/PR templates | `../../.github/ISSUE_TEMPLATE/`, `../../.github/pull_request_template.md` | Bug/feature forms; PR checklist mirrors the AGENTS.md rules |
 
 ## API Surface
 
