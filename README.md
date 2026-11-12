@@ -1,6 +1,9 @@
 <div align="center">
 
-<h1>Armature</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+  <img alt="Armature" src="docs/assets/logo-light.svg" width="360">
+</picture>
 
 <h3>Spec in, agent project out. Benchmark first.</h3>
 
