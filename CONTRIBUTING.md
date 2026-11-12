@@ -63,4 +63,4 @@ Coding agents (and people who like maps) can start at [AGENTS.md](AGENTS.md) and
 - Add a line to [CHANGELOG.md](CHANGELOG.md) under _Unreleased_ for user-visible changes.
 
 By contributing you agree that your contributions are licensed under the
-[Apache-2.0 license](LICENSE), and that you will follow the [code of conduct](CODE_OF_CONDUCT.md).
+[MIT license](LICENSE), and that you will follow the [code of conduct](CODE_OF_CONDUCT.md).

@@ -14,4 +14,4 @@ Requires Node 22+, and Python 3.11–3.13 with [uv](https://docs.astral.sh/uv/) 
 project.
 
 Docs: [CLI reference](https://github.com/gnsepili/armature/blob/main/docs/cli.md) ·
-[repository](https://github.com/gnsepili/armature). Apache-2.0.
+[repository](https://github.com/gnsepili/armature). MIT.
